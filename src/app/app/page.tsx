@@ -97,7 +97,7 @@ function PaletteHost(props: { tokens: TokenMarket[]; officialToken?: string; onO
         ? [{ label: "My portfolio", hint: "Holdings and PnL for the connected wallet", icon: <IconPie />, run: () => props.onView("portfolio") }]
         : [{ label: "Connect wallet", hint: "MetaMask, Rabby, Coinbase and more", icon: <IconWallet />, run: () => void wallet.connect() }]),
       ...(SHOW_SAT_TOKEN ? [{ label: "Buy SAT", hint: "Open the SAT pool", icon: <IconDiamond />, run: () => window.open(sat?.buyUrl ?? "/app?view=sat", "_blank", "noopener") }] : []),
-      { label: "Daily flow report", hint: "The last 24h on Robinhood Chain", icon: <IconReport />, run: () => window.open("/report", "_blank", "noopener") },
+      ...(ON_SOLANA ? [] : [{ label: "Daily flow report", hint: "The last 24h on Robinhood Chain", icon: <IconReport />, run: () => window.open("/report", "_blank", "noopener") }]),
       { label: "Trending launches", hint: "Most traded Pons curves right now", icon: <IconBolt />, run: () => props.onView("explore") },
     ],
     [wallet, sat, props],
@@ -291,7 +291,7 @@ export default function Terminal() {
         )}
         <span
           className={`pill chain-pill ${!market || market.source === "robinhood-chain" ? "ok" : "warn"}`}
-          title={market && market.source !== "robinhood-chain" ? `Data source: ${market.source}` : "Live Robinhood Chain mainnet data"}
+          title={ON_SOLANA ? "Live Solana mainnet data" : market && market.source !== "robinhood-chain" ? `Data source: ${market.source}` : "Live Robinhood Chain mainnet data"}
         >
           <span className={!market || market.source === "robinhood-chain" ? "dot live" : "dot"} />
           {ON_SOLANA ? CHAIN_NAME : (market?.chain.name ?? CHAIN_NAME)}
@@ -338,7 +338,7 @@ export default function Terminal() {
 
       {loadError && (
         <div className="banner error">
-          <span>Could not load Robinhood Chain data: {loadError}</span>
+          <span>Could not load {CHAIN_NAME} data: {loadError}</span>
         </div>
       )}
 

@@ -1,3 +1,4 @@
+import { CHAIN_NAME } from "@/lib/chainMode";
 import type { Metadata } from "next";
 import Link from "next/link";
 import Logo from "@/components/Logo";
@@ -5,10 +6,10 @@ import ReportView from "@/components/ReportView";
 import "../live.css";
 
 export const metadata: Metadata = {
-  title: "Daily Robinhood Chain flow report | SAT",
-  description: "The last 24 hours on Robinhood Chain: volume, where money is flowing, the biggest buys, smart money and new Pons launches. Read from chain by SAT.",
+  title: `Daily ${CHAIN_NAME} flow report | SAT`,
+  description: `The last 24 hours on ${CHAIN_NAME}: volume, where money is flowing, the biggest buys and new launches. Read from chain by SAT.`,
   openGraph: {
-    title: "Daily Robinhood Chain flow report by SAT",
+    title: `Daily ${CHAIN_NAME} flow report by SAT`,
     description: "Volume, inflows, the biggest buys and new launches, read straight from chain.",
     images: [{ url: "/api/card/report", width: 1200, height: 630 }],
   },

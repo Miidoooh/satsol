@@ -25,12 +25,12 @@ export default function OpenGraphImage() {
         <div style={{ display: "flex", flexDirection: "column", flex: 1, gap: 22 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
             <div style={{ display: "flex", padding: "8px 16px", borderRadius: 999, background: "rgba(204,255,0,0.12)", border: "2px solid rgba(204,255,0,0.4)", color: "#CCFF00", fontSize: 22, fontWeight: 700 }}>
-              LIVE ON ROBINHOOD CHAIN
+              LIVE ON SOLANA
             </div>
           </div>
           <div style={{ display: "flex", fontSize: 120, fontWeight: 800, letterSpacing: -4, lineHeight: 1 }}>SAT</div>
           <div style={{ display: "flex", fontSize: 50, fontWeight: 700, lineHeight: 1.1, color: "#CCFF00" }}>Your satellite over Solana</div>
-          <div style={{ display: "flex", fontSize: 26, color: "#B4BCDB" }}>Whales, hot launches and every move, spotted first.</div>
+          <div style={{ display: "flex", fontSize: 26, color: "#B4BCDB" }}>Hot launches, whales and every move on Solana, spotted first.</div>
         </div>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={satelliteDataUri({ mood: "whale" })} width={420} height={420} alt="" />
