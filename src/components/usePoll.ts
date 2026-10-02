@@ -13,6 +13,12 @@ export function usePoll<T>(url: string, intervalMs: number): { data: T | null; e
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // An empty URL means "nothing to fetch yet", e.g. no wallet connected.
+    if (!url) {
+      setData(null);
+      setLoading(false);
+      return;
+    }
     let alive = true;
     // Per URL, so changing a filter never waits behind a request for the old one.
     let inFlight = false;

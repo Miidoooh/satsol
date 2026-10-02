@@ -29,7 +29,7 @@ export default function HomeView({ onOpenToken, onExplore, onRadar, onAgent }: {
           <p>
             {ON_SOLANA
               ? "What is running on Solana right now: the hottest tokens, fresh pump.fun launches, who is talking about them on X, and what is about to graduate. Tap anything to open its chart and buy it."
-              : "What is running on Pons and Uniswap right now: the hottest tokens, fresh launches, whale buys, and what is about to graduate. Tap anything to open its chart and trade it."}
+              : "What is running right now: the hottest tokens, fresh launches, whale buys, and what is about to graduate. Tap anything to open its chart and trade it."}
           </p>
         </div>
       </section>
@@ -80,7 +80,7 @@ export default function HomeView({ onOpenToken, onExplore, onRadar, onAgent }: {
             </button>
           </div>
         )}
-        <LiveMarkets limit={4} onOpen={onOpenToken} />
+        {!ON_SOLANA && <LiveMarkets limit={4} onOpen={onOpenToken} />}
       </div>
     </div>
   );

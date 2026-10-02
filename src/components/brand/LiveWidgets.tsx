@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import type { SolRadar } from "@/app/api/sol/radar/route";
 import { ON_SOLANA } from "@/lib/chainMode";
 import { fmtAgo, fmtPct, fmtPrice, fmtUsd } from "@/lib/format";
 import type { PonsTokenDetail } from "@/lib/data/ponsToken";
@@ -39,8 +40,51 @@ function Skeleton({ n = 5 }: { n?: number }) {
 
 const whaleSize = (usd: number) => (usd >= 25_000 ? 26 : usd >= 10_000 ? 22 : usd >= 5_000 ? 18 : 15);
 
-/** The latest big trades, whales sized by how big they are. Token whales first; stocks only fill the gaps. */
-export function LiveWhales({ limit = 6, onOpen }: { limit?: number; onOpen?: Open }) {
+/** The latest big trades, whales sized by how big they are. */
+export function LiveWhales(props: { limit?: number; onOpen?: Open }) {
+  return ON_SOLANA ? <SolWhales {...props} /> : <RhWhales {...props} />;
+}
+
+/** Solana whale trades in the hottest pools. */
+function SolWhales({ limit = 6, onOpen }: { limit?: number; onOpen?: Open }) {
+  const { data } = usePoll<SolRadar>("/api/sol/radar", 15_000);
+  const now = useNow();
+  const rows = (data?.trades ?? []).slice(0, limit);
+  return (
+    <div className="sx-card">
+      <div className="sx-card-head">
+        <span>Whale trades · Solana</span>
+        <span className="sx-live-tag">
+          <span className="dot live" /> live
+        </span>
+      </div>
+      {!data && <Skeleton n={limit} />}
+      {data && rows.length === 0 && <div className="dim">Waiting for the next big trade…</div>}
+      {rows.map((t) => (
+        <div key={t.id} className="sx-row" role={onOpen ? "button" : undefined} onClick={() => onOpen?.(t.token)} style={{ cursor: onOpen ? "pointer" : undefined }}>
+          <span className="sx-row-id">
+            <span className="sx-whale-ico" style={{ fontSize: whaleSize(t.usd) }} aria-hidden>
+              🐋
+            </span>
+            <TokenAvatar src={t.logoUrl} symbol={t.symbol} seed={t.token} size={26} />
+            <span>
+              <b>{t.symbol}</b>
+              <div className="dim">
+                {t.side === "buy" ? "bought" : "sold"} · {fmtAgo(t.at, now)} ago
+              </div>
+            </span>
+          </span>
+          <span className={`mono ${t.side === "buy" ? "up" : "down"}`} style={{ fontWeight: 700 }}>
+            {t.side === "buy" ? "+" : "−"}
+            {fmtUsd(t.usd, { compact: true })}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function RhWhales({ limit = 6, onOpen }: { limit?: number; onOpen?: Open }) {
   const { data } = usePoll<RadarSnapshot>("/api/whales?minUsd=250&venue=all&limit=80", 10_000);
   const now = useNow();
   const trades = data?.trades ?? [];
@@ -84,7 +128,7 @@ export function LiveWhales({ limit = 6, onOpen }: { limit?: number; onOpen?: Ope
   );
 }
 
-/** What is running right now on Pons. */
+/** What is running right now. */
 export function LiveTrending({ limit = 5, onOpen }: { limit?: number; onOpen?: Open }) {
   const { data } = usePoll<ExplorePage>(`/api/explore?tab=trending&limit=${limit}`, 12_000);
   return (
@@ -144,7 +188,7 @@ export function LiveSocial({ limit = 6, onOpen }: { limit?: number; onOpen?: Ope
       </div>
       {!data && <Skeleton n={4} />}
       {data && !data.enabled && <div className="dim">The X radar is off on this server.</div>}
-      {data?.enabled && posts.length === 0 && <div className="dim">Listening to X for Robinhood Chain tokens…</div>}
+      {data?.enabled && posts.length === 0 && <div className="dim">Listening to X for {ON_SOLANA ? "Solana" : "Robinhood Chain"} tokens…</div>}
       {posts.map((p) => (
         <a key={p.id} className="sx-post" href={p.url} target="_blank" rel="noreferrer noopener">
           {p.author.avatar ? <img className="sx-post-av" src={p.author.avatar} alt="" width={30} height={30} /> : <span className="sx-post-av" />}
@@ -211,7 +255,7 @@ export function LiveLaunches({ limit = 5, onOpen }: { limit?: number; onOpen?: O
   );
 }
 
-/** A marquee of what is trending on Pons right now. */
+/** A marquee of what is trending right now. */
 export function TrendingTape() {
   const { data } = usePoll<ExplorePage>("/api/explore?tab=trending&limit=20", 20_000);
   const rows = data?.rows.filter((r) => r.vol30mUsd > 0) ?? [];
@@ -219,7 +263,7 @@ export function TrendingTape() {
     return (
       <div className="ticker">
         <div className="ticker-track" style={{ animation: "none" }}>
-          <span className="tick muted">Scanning Pons launches…</span>
+          <span className="tick muted">{ON_SOLANA ? "Scanning Solana launches…" : "Scanning Pons launches…"}</span>
         </div>
       </div>
     );
@@ -288,7 +332,7 @@ export function LiveScan({ onOpen }: { onOpen?: Open }) {
   const target = hot?.rows[0]?.token;
   const [detail, setDetail] = useState<PonsTokenDetail | null>(null);
   useEffect(() => {
-    if (!target) return;
+    // The deep safety read is Robinhood-only for now.
     let alive = true;
     fetch(`/api/pons/token?address=${target}`)
       .then((r) => (r.ok ? r.json() : null))

@@ -124,7 +124,8 @@ export default function AlertsCenter({ onOpenToken, onOpenWallet, onOpenSat, age
   );
 
   useEffect(() => {
-    if (!settings.enabled) return;
+    // Whale, curve and rule alerts read Robinhood Chain feeds; on Solana the X radar alerts run below.
+    if (!settings.enabled || ON_SOLANA) return;
     let alive = true;
     // Restarting (new thresholds, follows or rules) begins from a clean slate so old trades don't all fire at once.
     let first = true;
@@ -227,6 +228,12 @@ export default function AlertsCenter({ onOpenToken, onOpenWallet, onOpenSat, age
                 {activeRules > 0 ? `, including ${activeRules} rule${activeRules === 1 ? "" : "s"}` : ""}.
                 {denied && " Browser notifications are blocked, so alerts show inside the app only."}
               </div>
+              {ON_SOLANA ? (
+                <div className="dim alerts-note">
+                  On Solana you get an alert the moment an X account with 10K+ followers posts about a token, with a one-tap link to chart and buy it.
+                </div>
+              ) : (
+              <>
               <div className="alerts-label">Whale trades at least</div>
               <div className="tfs">
                 {WHALE_SIZES.map((s) => (
@@ -254,6 +261,8 @@ export default function AlertsCenter({ onOpenToken, onOpenWallet, onOpenSat, age
                   onOpenSat();
                 }}
               />
+              </>
+              )}
               <TelegramPanel />
             </aside>
           </>,

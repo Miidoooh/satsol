@@ -42,7 +42,7 @@ const CHAPTERS: { mood: SatMood; tag: string; title: string; lead: string; widge
     mood: "watching",
     tag: "WATCHING",
     title: "It never blinks.",
-    lead: "Every Pons launch and every Uniswap pool on Robinhood Chain, read straight from the chain around the clock. New tokens show up here seconds after they are deployed.",
+    lead: "Every pump.fun launch and every pool on PumpSwap, Raydium and Meteora, watched around the clock. New tokens show up here seconds after they are deployed.",
     widget: <LiveLaunches onOpen={openToken} />,
   },
   {

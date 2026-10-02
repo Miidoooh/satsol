@@ -6,6 +6,7 @@ import AgentChat from "@/components/AgentChat";
 import AgentView from "@/components/agent/AgentView";
 import { SolanaWalletProvider } from "@/components/solana/SolanaWallet";
 import SolTokenView from "@/components/solana/SolTokenView";
+import { SolPortfolio, SolTerminal, SolTrenches, SolWhaleRadar } from "@/components/solana/SolViews";
 import AlertsCenter from "@/components/AlertsCenter";
 import ChartPanel from "@/components/ChartPanel";
 import ConnectButton from "@/components/ConnectButton";
@@ -75,7 +76,15 @@ const VIEWS: { id: View; label: string; short: string; icon: React.ReactNode; hi
 const MODE_KEY = "sat:mode";
 
 
-const SHOWN = VIEWS;
+/** On Solana: Smart Money waits for its Solana version, and Pons wording goes. */
+const SOLANA_LABELS: Partial<Record<View, { label?: string; hint: string }>> = {
+  terminal: { hint: "Solana tokens, live chart and Jupiter trading" },
+  explore: { hint: "Every Solana launch: pump.fun, PumpSwap, Raydium, Meteora and more" },
+  radar: { hint: "Whale trades and where money is flowing on Solana" },
+  trenches: { label: "Trenches", hint: "New, graduating and hot launches on Solana" },
+  portfolio: { hint: "Your Solana holdings, valued live" },
+};
+const SHOWN = ON_SOLANA ? VIEWS.filter((v) => v.id !== "wallets").map((v) => ({ ...v, ...SOLANA_LABELS[v.id] })) : VIEWS;
 const isView = (v: string | null): v is View => SHOWN.some((x) => x.id === v);
 
 /** The command palette, inside the wallet provider so it can offer wallet actions. */
@@ -333,15 +342,19 @@ export default function Terminal() {
         </div>
       )}
 
-      {view === "radar" && (
+      {ON_SOLANA && view === "radar" && <SolWhaleRadar onOpen={(t) => void openToken(t)} />}
+      {ON_SOLANA && view === "trenches" && <SolTrenches onOpen={(t) => void openToken(t)} />}
+      {ON_SOLANA && view === "portfolio" && <SolPortfolio onOpen={(t) => void openToken(t)} />}
+      {ON_SOLANA && view === "terminal" && <SolTerminal onHome={() => switchView("home")} />}
+      {!ON_SOLANA && view === "radar" && (
         <WhaleRadar
           explorer={explorer}
           onOpenToken={(token, venue) => void openToken(token, venue === "pons" ? ponsTokenUrl(token) : undefined)}
           onWallet={openWallet}
         />
       )}
-      {view === "trenches" && <PonsTrenches explorer={explorer} onOpenToken={(token, url) => void openToken(token, url)} />}
-      {view === "wallets" && (
+      {!ON_SOLANA && view === "trenches" && <PonsTrenches explorer={explorer} onOpenToken={(token, url) => void openToken(token, url)} />}
+      {!ON_SOLANA && view === "wallets" && (
         <WalletTracker
           explorer={explorer}
           wallet={wallet}
@@ -355,10 +368,10 @@ export default function Terminal() {
       {view === "explore" && <ExploreView onOpenToken={(token, url) => void openToken(token, url)} />}
       {view === "token" && solMint && <SolTokenView mint={solMint} onBack={() => switchView("explore")} />}
       {view === "agent" && <AgentView agentEnabled={market?.agentEnabled ?? false} onOpenToken={(token) => void openToken(token)} />}
-      {view === "portfolio" && <PortfolioView explorer={explorer} onOpenToken={(token) => void openToken(token)} />}
+      {!ON_SOLANA && view === "portfolio" && <PortfolioView explorer={explorer} onOpenToken={(token) => void openToken(token)} />}
       {view === "sat" && <SatView explorer={explorer} feeWallet={market?.execution.feeRecipient ?? null} />}
 
-      <div className="grid" hidden={view !== "terminal"}>
+      <div className="grid" hidden={ON_SOLANA || view !== "terminal"}>
         <section className="col markets">
           <div className="col-head">
             Markets

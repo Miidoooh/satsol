@@ -1,8 +1,30 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { fmtUsd } from "@/lib/format";
-import type { RadarSnapshot, WhaleTrade } from "@/lib/radar/whales";
+import type { SolRadar } from "@/app/api/sol/radar/route";
+import { CHAIN_NAME, ON_SOLANA } from "@/lib/chainMode";
+import type { RadarSnapshot } from "@/lib/radar/whales";
+
+interface HeroTrade {
+  id: string;
+  token: string;
+  symbol: string;
+  side: "buy" | "sell";
+  usd: number;
+}
+
+/** One shape for the hero, from either chain's radar. */
+function heroFeed(rh: RadarSnapshot | null, sol: SolRadar | null): { trades: HeroTrade[]; bought: number; sold: number; count: number } | null {
+  if (sol) {
+    const n = sol.totals.buys30m + sol.totals.sells30m;
+    const buyShare = n ? sol.totals.buys30m / n : 0.5;
+    return { trades: sol.trades, bought: sol.totals.volume30mUsd * buyShare, sold: sol.totals.volume30mUsd * (1 - buyShare), count: n };
+  }
+  if (!rh) return null;
+  const t = rh.totals;
+  return { trades: rh.trades, bought: t.stock.buyUsd + t.pons.buyUsd, sold: t.stock.sellUsd + t.pons.sellUsd, count: t.stock.trades + t.pons.trades };
+}
 import { usePoll } from "../usePoll";
 import Satellite, { type SatMood } from "./Satellite";
 
@@ -40,9 +62,11 @@ export default function OrbitHero() {
   const layout = useRef({ w: 0, h: 0, planet: { cx: 0, cy: 0, r: 0 } });
   const satPos = useRef({ x: 0, y: 0 });
   const [mood, setMood] = useState<SatMood>("watching");
-  const [bubble, setBubble] = useState<(WhaleTrade & { left: boolean }) | null>(null);
+  const [bubble, setBubble] = useState<(HeroTrade & { left: boolean }) | null>(null);
   const moodTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const { data } = usePoll<RadarSnapshot>("/api/whales?minUsd=250&venue=all&limit=80", 8_000);
+  const rh = usePoll<RadarSnapshot>(ON_SOLANA ? "" : "/api/whales?minUsd=250&venue=all&limit=80", 8_000);
+  const sol = usePoll<SolRadar>(ON_SOLANA ? "/api/sol/radar" : "", 15_000);
+  const data = useMemo(() => heroFeed(rh.data, sol.data), [rh.data, sol.data]);
 
   // Draw: stars, the planet, its atmosphere, and the live pings.
   useEffect(() => {
@@ -214,10 +238,9 @@ export default function OrbitHero() {
     return () => clearInterval(t);
   }, []);
 
-  const totals = data?.totals;
-  const bought = totals ? totals.stock.buyUsd + totals.pons.buyUsd : null;
-  const sold = totals ? totals.stock.sellUsd + totals.pons.sellUsd : null;
-  const trades = totals ? totals.stock.trades + totals.pons.trades : null;
+  const bought = data?.bought ?? null;
+  const sold = data?.sold ?? null;
+  const trades = data?.count ?? null;
   const whales = data ? data.trades.filter((t) => t.usd >= 10_000).length : null;
 
   return (
@@ -232,7 +255,7 @@ export default function OrbitHero() {
               {bubble.side === "buy" ? "+" : "−"}
               {fmtUsd(bubble.usd, { compact: true })} {bubble.side === "buy" ? "into" : "out of"} {bubble.symbol}
             </div>
-            <div className="sx-bubble-s">just now · live on Robinhood Chain</div>
+            <div className="sx-bubble-s">just now · live on {CHAIN_NAME}</div>
           </div>
         )}
       </div>

@@ -17,7 +17,7 @@ export default function Landing() {
         <nav>
           <Link href="/app?view=explore">Explore</Link>
           <Link href="/app?view=radar">Whales</Link>
-          <Link href="/report">Daily report</Link>
+          <Link href="/app?view=agent">Your Agent</Link>
           <Link href="#sat">$SAT</Link>
         </nav>
         <div className="spacer" />
@@ -66,8 +66,8 @@ export default function Landing() {
               <Link className="sx-btn primary" href="/app">
                 Open SAT →
               </Link>
-              <Link className="sx-btn ghost" href="/report">
-                Today&apos;s token report
+              <Link className="sx-btn ghost" href="/app?view=agent">
+                Meet your agent
               </Link>
             </div>
           </section>
@@ -80,15 +80,13 @@ export default function Landing() {
             <span className="dim">Your satellite over Solana</span>
             <div className="spacer" style={{ flex: 1 }} />
             <Link href="/app">App</Link>
-            <Link href="/report">Report</Link>
+            <Link href="/app?view=agent">Agent</Link>
             <a href="https://x.com/sat_rhood" target="_blank" rel="noreferrer noopener">
               X @sat_rhood
             </a>
           </div>
           <p>
-            Not investment advice. Indicators, scores and patterns are heuristics, not predictions. Stock Tokens are tokenised debt securities issued by Robinhood Assets (Jersey) Limited;
-            they track an underlying security&apos;s economics but grant no ownership of it, and they are not available to US persons. Prices on a 24/7 on-chain market can diverge from
-            the underlying equity. Always confirm contract addresses on the official explorer.
+            Not investment advice. Indicators, scores, picks and patterns are heuristics, not predictions. Memecoins are extremely volatile and most go to zero; only trade what you can afford to lose. Always confirm contract addresses before you buy.
           </p>
         </footer>
       </div>

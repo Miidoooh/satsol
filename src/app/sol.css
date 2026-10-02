@@ -177,6 +177,72 @@
   text-align: center;
 }
 
+/* Pro terminal on Solana */
+.sol-terminal {
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr);
+  min-height: 0;
+  overflow: hidden;
+}
+.sol-term-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px;
+  overflow-y: auto;
+  border-right: 1px solid var(--hairline-strong);
+}
+.sol-term-list .sol-input {
+  margin-bottom: 6px;
+  font-size: 13px;
+}
+.sol-term-row {
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 8px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  background: none;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.sol-term-row:hover {
+  background: rgba(160, 170, 255, 0.05);
+}
+.sol-term-row.on {
+  border-color: rgba(204, 255, 0, 0.4);
+  background: rgba(204, 255, 0, 0.06);
+}
+.sol-term-sym {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  font-size: 13px;
+}
+.sol-term-sym .dim {
+  font-size: 11px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sol-term-main {
+  min-width: 0;
+  overflow-y: auto;
+}
+@media (max-width: 900px) {
+  .sol-terminal {
+    grid-template-columns: 1fr;
+  }
+  .sol-term-list {
+    max-height: 220px;
+    border-right: 0;
+    border-bottom: 1px solid var(--hairline-strong);
+  }
+}
+
 /* Wallet button, matched to the brand. */
 .wallet-adapter-button.wallet-adapter-button-trigger.sol-connect,
 .sol-connect.wallet-adapter-button {

@@ -18,7 +18,7 @@ const REFRESH_MS = 10_000;
 const NEW_SECONDS = 5 * 60;
 
 const TABS: { id: ExploreTab; label: string; hint: string }[] = [
-  { id: "all", label: "All launchpads", hint: "Pons, Bankr, Virtuals, Clanker, Pools.trade, Uniswap and every other venue on the chain" },
+  { id: "all", label: "All launchpads", hint: ON_SOLANA ? "pump.fun, PumpSwap, Raydium, Meteora, Orca and every other venue on Solana" : "Pons, Bankr, Virtuals, Clanker, Pools.trade, Uniswap and every other venue on the chain" },
   { id: "new", label: "New pairs", hint: "Newest launches first" },
   { id: "trending", label: "Trending", hint: "Most traded in the last 30 minutes" },
   { id: "almost", label: "Almost bonded", hint: "Closest to graduating" },
@@ -320,7 +320,7 @@ export default function ExploreView({ onOpenToken }: Props) {
               </button>
               )}
               {!r.external && (
-                <a className="btn sm ghost ex-pons" href={r.url} target="_blank" rel="noreferrer noopener" onClick={(e) => e.stopPropagation()} title="Open on Pons">
+                <a className="btn sm ghost ex-pons" href={r.url} target="_blank" rel="noreferrer noopener" onClick={(e) => e.stopPropagation()} title={ON_SOLANA ? "Open its chart on GeckoTerminal" : "Open on Pons"}>
                   ↗
                 </a>
               )}
