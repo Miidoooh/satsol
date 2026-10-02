@@ -69,7 +69,7 @@ export default function ReportView() {
   const lead = r?.inflows[0];
   const whale = r?.biggestBuys[0];
   const post = r
-    ? `Robinhood Chain tokens, last 24h by @sat_hood:\n\n${fmtUsd(r.totals.ponsUsd, { compact: true })} traded · ${r.pons.launches} launches · ${r.pons.graduations} graduated${lead ? `\nHottest: $${lead.symbol} (+${fmtUsd(lead.netUsd, { compact: true })} net in)` : ""}${whale ? `\nBiggest buy: ${fmtUsd(whale.usd, { compact: true })} of $${whale.symbol}` : ""}\n\n`
+    ? `Robinhood Chain tokens, last 24h by @sat_rhood:\n\n${fmtUsd(r.totals.ponsUsd, { compact: true })} traded · ${r.pons.launches} launches · ${r.pons.graduations} graduated${lead ? `\nHottest: $${lead.symbol} (+${fmtUsd(lead.netUsd, { compact: true })} net in)` : ""}${whale ? `\nBiggest buy: ${fmtUsd(whale.usd, { compact: true })} of $${whale.symbol}` : ""}\n\n`
     : "";
   const day = r ? new Date(`${r.date}T00:00:00Z`).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", timeZone: "UTC" }) : "";
 

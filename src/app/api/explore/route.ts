@@ -9,7 +9,7 @@ export const runtime = "nodejs";
 export const maxDuration = 60;
 
 const Query = z.object({
-  tab: z.enum(["new", "trending", "almost", "graduated"]).default("new"),
+  tab: z.enum(["all", "new", "trending", "almost", "graduated"]).default("new"),
   sort: z.enum(["age", "mcap", "volume", "progress", "txns", "net"]).optional(),
   q: z.string().max(64).optional(),
   minMcap: z.coerce.number().min(0).max(1e12).optional(),

@@ -15,7 +15,7 @@ async function main() {
   if (!off && !secret) throw new Error("Set TELEGRAM_WEBHOOK_SECRET first (any long random string).");
   const body = off
     ? { drop_pending_updates: false }
-    : { url: `${site}/api/telegram/webhook`, secret_token: secret, allowed_updates: ["message"] };
+    : { url: `${site}/api/telegram/webhook`, secret_token: secret, allowed_updates: ["message", "callback_query"] };
   const res = await fetch(`https://api.telegram.org/bot${token}/${off ? "deleteWebhook" : "setWebhook"}`, {
     method: "POST",
     headers: { "content-type": "application/json" },

@@ -24,6 +24,19 @@ const EnvSchema = z.object({
   /** Posts from accounts with at least this many followers raise alerts. */
   SOCIAL_ALERT_FOLLOWERS: z.coerce.number().int().min(0).default(10_000),
 
+  /** Satellites Bot: an automated X account that posts the agent's best calls. */
+  BOT_MODE: z.enum(["off", "approve", "auto"]).default("approve"),
+  /** Guards the connect and status routes. Required for the bot to run. */
+  BOT_ADMIN_SECRET: z.preprocess(emptyToUndef, z.string().min(16).optional()),
+  /** Telegram chat that reviews drafts while BOT_MODE=approve. */
+  BOT_ADMIN_CHAT_ID: z.preprocess(emptyToUndef, z.string().optional()),
+  BOT_MAX_CALLS_PER_DAY: z.coerce.number().int().min(0).max(50).default(8),
+  BOT_MIN_GAP_MIN: z.coerce.number().int().min(5).max(24 * 60).default(45),
+  /** X developer app (OAuth 2.0). The bot and @sat_rhood both authorize this app once. */
+  X_CLIENT_ID: z.preprocess(emptyToUndef, z.string().optional()),
+  X_CLIENT_SECRET: z.preprocess(emptyToUndef, z.string().optional()),
+  SAT_SITE_URL: z.string().url().default("https://sathood.xyz"),
+
   /** Defaults target Robinhood Chain mainnet. */
   RH_CHAIN_ID: z.coerce.number().int().positive().default(ROBINHOOD_MAINNET.chainId),
   RH_CHAIN_NAME: z.string().default(ROBINHOOD_MAINNET.name),

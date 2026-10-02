@@ -523,6 +523,12 @@ kbd {
   background: var(--accent);
   animation: v3-glow 1.6s ease-in-out infinite;
 }
+.ex-badge.pad {
+  color: #c8d0ee;
+  background: var(--indigo-dim, rgba(109, 91, 255, 0.14));
+  font-weight: 700;
+  letter-spacing: 0;
+}
 .ex-badge.hot {
   color: #ffb020;
   background: rgba(255, 176, 32, 0.14);

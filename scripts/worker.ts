@@ -6,6 +6,7 @@
  *   npm run worker
  */
 import { picksFor } from "../src/lib/agent/picks";
+import { runBot } from "../src/lib/bot/bot";
 import { STYLE_PRESETS, type Strategy } from "../src/lib/agent/strategy";
 import { recordPicks } from "../src/lib/agent/track";
 import { detectAlerts, type AlertItem, type AlertSettings } from "../src/lib/alerts/detect";
@@ -151,6 +152,7 @@ async function postAlpha(state: AlphaState, radars: Map<string, RadarSnapshot>, 
 }
 
 const AGENT_EVERY = Math.round(2 * 60_000 / TICK_MS);
+const BOT_EVERY = Math.round(5 * 60_000 / TICK_MS);
 const PRESETS = ["sniper", "momentum", "graduation", "whale"] as const;
 
 /**
@@ -285,6 +287,13 @@ function main() {
       if (tick % AGENT_EVERY === 0) {
         await runSocial(live).catch((err) => log("social failed", message(err)));
         await runAgents(live).catch((err) => log("agents failed", message(err)));
+      }
+      if (tick % BOT_EVERY === 0) {
+        const run = await runBot(live).catch((err) => {
+          log("bot failed", message(err));
+          return null;
+        });
+        if (run && (run.created.length || run.posted)) log(`bot: drafted ${run.created.join(", ") || "nothing"}, posted ${run.posted}`);
       }
     } catch (err) {
       log("tick failed", message(err));

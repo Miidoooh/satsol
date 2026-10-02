@@ -46,7 +46,8 @@ describe("style filters", () => {
     expect(rejectReason(sniper, launch({ launchedAt: NOW - 3 * 3600 }), NOW)).toBe("too old");
     expect(rejectReason(sniper, launch({ traders30m: 2 }), NOW)).toBe("too few traders");
     expect(rejectReason(sniper, launch({ socials: undefined }), NOW)).toBe("no socials");
-    expect(rejectReason(sniper, launch({ graduatedAt: NOW - 60 }), NOW)).toBe("graduated");
+    expect(rejectReason(sniper, launch({ graduatedAt: NOW - 60 }), NOW)).toBeNull();
+    expect(rejectReason(STYLE_PRESETS.graduation, launch({ graduatedAt: NOW - 60 }), NOW)).toBe("graduated");
   });
 
   it("ranks the stronger launch first and drops the ones that fail", () => {

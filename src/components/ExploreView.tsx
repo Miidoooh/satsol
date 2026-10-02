@@ -14,6 +14,7 @@ const REFRESH_MS = 10_000;
 const NEW_SECONDS = 5 * 60;
 
 const TABS: { id: ExploreTab; label: string; hint: string }[] = [
+  { id: "all", label: "All launchpads", hint: "Pons, Bankr, Virtuals, Clanker, Pools.trade, Uniswap and every other venue on the chain" },
   { id: "new", label: "New pairs", hint: "Newest launches first" },
   { id: "trending", label: "Trending", hint: "Most traded in the last 30 minutes" },
   { id: "almost", label: "Almost bonded", hint: "Closest to graduating" },
@@ -59,7 +60,7 @@ function Bonding({ pct }: { pct: number }) {
 
 /** GMGN-style table over every scanned Pons launch. */
 export default function ExploreView({ onOpenToken }: Props) {
-  const [tab, setTab] = useState<ExploreTab>("new");
+  const [tab, setTab] = useState<ExploreTab>("all");
   const [sort, setSort] = useState<ExploreSort | null>(null);
   const [q, setQ] = useState("");
   const [minMcap, setMinMcap] = useState(0);
@@ -118,7 +119,7 @@ export default function ExploreView({ onOpenToken }: Props) {
 
   const activeSort = sort ?? (tab === "trending" ? "volume" : tab === "almost" ? "progress" : "age");
   const rows = page?.tab === tab ? page.rows : [];
-  const open = (r: ExploreRow) => onOpenToken(r.token, r.url);
+  const open = (r: ExploreRow) => (r.external ? window.open(r.url, "_blank", "noopener") : onOpenToken(r.token, r.url));
 
   const wallet = useWallet();
   const [quickUsd, setQuickUsd] = useState(10);
@@ -223,7 +224,7 @@ export default function ExploreView({ onOpenToken }: Props) {
           <span>Token</span>
           <span>{tab === "graduated" ? "Graduated" : "Age"}</span>
           <span>{tab === "graduated" ? "MCap at grad" : "MCap"}</span>
-          <span>{tab === "graduated" ? "Pool seeded" : "Bonding"}</span>
+          <span>{tab === "graduated" ? "Pool seeded" : tab === "all" ? "Bonding · liquidity" : "Bonding"}</span>
           <span>Vol 30m</span>
           <span>Txns · wallets</span>
           <span>Net 30m</span>
@@ -249,7 +250,8 @@ export default function ExploreView({ onOpenToken }: Props) {
                 <span className="ex-sym">
                   {r.symbol}
                   {r.launchedAt !== null && now - r.launchedAt < NEW_SECONDS && tab !== "graduated" && <span className="ex-badge new">NEW</span>}
-                  {tab === "trending" && i < 3 && <span className="ex-badge hot">🔥 HOT</span>}
+                  {(tab === "trending" || tab === "all") && i < 3 && <span className="ex-badge hot">🔥 HOT</span>}
+                  {tab === "all" && r.launchpad && <span className="ex-badge pad">{r.launchpad}</span>}
                   <SocialLinks socials={r.socials} size={11} />
                 </span>
                 <span className="dim ex-name">{r.name || `${r.token.slice(0, 6)}…${r.token.slice(-4)}`}</span>
@@ -259,7 +261,15 @@ export default function ExploreView({ onOpenToken }: Props) {
             <Flash value={r.mcapUsd} className="mono">
               {r.mcapUsd !== null ? fmtUsd(r.mcapUsd, { compact: true }) : "—"}
             </Flash>
-            {tab === "graduated" ? <span className="mono">{fmtUsd(r.raisedUsd * 2, { compact: true })}</span> : <Bonding pct={r.progressPct} />}
+            {r.external ? (
+              <span className="mono" title="Pool liquidity">
+                {fmtUsd(r.raisedUsd, { compact: true })} liq
+              </span>
+            ) : tab === "graduated" ? (
+              <span className="mono">{fmtUsd(r.raisedUsd * 2, { compact: true })}</span>
+            ) : (
+              <Bonding pct={r.progressPct} />
+            )}
             <span className="mono">{r.vol30mUsd ? fmtUsd(r.vol30mUsd, { compact: true }) : <span className="dim">—</span>}</span>
             <span className="mono dim">{r.txns30m ? `${r.txns30m} · ${r.traders30m}` : "—"}</span>
             <span className={`mono ${r.net30mUsd > 0 ? "up" : r.net30mUsd < 0 ? "down" : "dim"}`}>
@@ -269,6 +279,11 @@ export default function ExploreView({ onOpenToken }: Props) {
               {r.priceUsd !== null ? `$${fmtPrice(r.priceUsd)}` : "—"}
             </Flash>
             <span className="ex-actions">
+              {r.external ? (
+                <a className="btn sm" href={r.url} target="_blank" rel="noreferrer noopener" onClick={(e) => e.stopPropagation()} title={`Trades on ${r.launchpad}; opens its pool`}>
+                  Trade ↗
+                </a>
+              ) : (
               <button
                 className="btn sm ex-quick"
                 disabled={!!buys[r.token]?.busy || !quickAmount(r)}
@@ -280,9 +295,12 @@ export default function ExploreView({ onOpenToken }: Props) {
               >
                 ⚡ ${quickUsd}
               </button>
-              <a className="btn sm ghost ex-pons" href={r.url} target="_blank" rel="noreferrer noopener" onClick={(e) => e.stopPropagation()} title="Open on Pons">
-                ↗
-              </a>
+              )}
+              {!r.external && (
+                <a className="btn sm ghost ex-pons" href={r.url} target="_blank" rel="noreferrer noopener" onClick={(e) => e.stopPropagation()} title="Open on Pons">
+                  ↗
+                </a>
+              )}
               {buys[r.token] && (
                 <span className={`ex-qstatus ${buys[r.token].tone ?? ""}`} onClick={(e) => e.stopPropagation()}>
                   {buys[r.token].href ? (

@@ -18,7 +18,7 @@ export default function ShareCard({ address, token, symbol, pnlUsd, onClose }: P
   const page = `${origin}/share/${address}/${token}`;
   const image = `/api/card/pnl?address=${address}&token=${token}`;
   const up = (pnlUsd ?? 0) >= 0;
-  const text = up ? `My $${symbol} position, tracked live on @sat_hood 📈` : `Taking notes on $${symbol} with @sat_hood on Robinhood Chain`;
+  const text = up ? `My $${symbol} position, tracked live on @sat_rhood 📈` : `Taking notes on $${symbol} with @sat_rhood on Robinhood Chain`;
   const intent = `https://x.com/intent/post?text=${encodeURIComponent(text)}&url=${encodeURIComponent(`${page}?ref=${address}`)}`;
 
   return (

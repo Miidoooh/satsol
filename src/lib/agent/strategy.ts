@@ -47,7 +47,7 @@ export const STYLE_PRESETS: Record<Exclude<Style, "custom">, Strategy> = {
   sniper: {
     name: "Sniper",
     style: "sniper",
-    stage: "curve",
+    stage: "any",
     mcapMin: 3_000,
     mcapMax: 15_000,
     maxAgeMin: 20,
@@ -139,6 +139,11 @@ export interface Candidate {
   url: string;
   paySymbol?: string;
   payUsd?: number;
+  launchpad?: string;
+  /** SAT cannot route this trade itself; buy through `url`. */
+  external?: boolean;
+  /** Raised on the curve, or pool liquidity for tokens outside Pons. */
+  raisedUsd?: number;
 }
 
 export interface PlanLevel {
@@ -183,6 +188,8 @@ export interface Pick {
   /** What a buy pays with, and its USD price. */
   paySymbol: string;
   payUsd: number;
+  launchpad: string;
+  external: boolean;
 }
 
 const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
@@ -263,6 +270,7 @@ function reasonsFor(s: Strategy, c: Candidate, now: number, safety?: { score: nu
   if (c.net30mUsd > 0) out.push(`${money(c.net30mUsd)} net buying in 30m`);
   if (c.vol30mUsd) out.push(`${money(c.vol30mUsd)} volume in 30m`);
   if (c.graduatedAt === null) out.push(`${c.progressPct.toFixed(0)}% bonded`);
+  else if (c.external) out.push(`trades on ${c.launchpad ?? "a DEX"}`);
   else out.push("graduated to Uniswap v4");
   if (hasSocials(c.socials)) out.push("lists its socials");
   if (safety) out.push(`safety ${safety.score} · ${safety.label}`);
@@ -305,6 +313,8 @@ export function matchPicks(
       url: c.url,
       paySymbol: c.paySymbol ?? "ETH",
       payUsd: c.payUsd ?? 0,
+      launchpad: c.launchpad ?? "Pons",
+      external: !!c.external,
     });
   }
   return picks.sort((a, b) => b.score - a.score).slice(0, opts.limit ?? 8);

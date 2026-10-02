@@ -32,7 +32,7 @@ export default function PickCard({ pick: p, rank, buy, onBuy, onOpen }: Props) {
           <div className="ag-pick-sym">
             {p.symbol}
             <SocialLinks socials={p.socials} size={11} />
-            <span className={`ag-stage ${p.stage}`}>{p.stage === "curve" ? `${p.progressPct.toFixed(0)}% bonded` : "Uniswap v4"}</span>
+            <span className={`ag-stage ${p.stage}`}>{p.stage === "curve" ? `${p.progressPct.toFixed(0)}% bonded` : p.external ? p.launchpad : "Uniswap v4"}</span>
           </div>
           <div className="dim ag-pick-sub">
             {money(p.mcapUsd)} mcap{p.ageMin !== null ? ` · ${p.ageMin < 120 ? `${p.ageMin}m` : `${Math.round(p.ageMin / 60)}h`} old` : ""}
@@ -85,9 +85,15 @@ export default function PickCard({ pick: p, rank, buy, onBuy, onOpen }: Props) {
       )}
 
       <footer className="ag-pick-foot">
-        <button className="btn primary ag-buy" disabled={buy?.busy} onClick={() => onBuy(p)}>
-          ⚡ Buy {money(p.plan.buyUsd)} & track plan
-        </button>
+        {p.external ? (
+          <a className="btn primary ag-buy" href={p.url} target="_blank" rel="noreferrer noopener" title={`SAT cannot route ${p.launchpad} trades yet`}>
+            Trade on GeckoTerminal ↗
+          </a>
+        ) : (
+          <button className="btn primary ag-buy" disabled={buy?.busy} onClick={() => onBuy(p)}>
+            ⚡ Buy {money(p.plan.buyUsd)} & track plan
+          </button>
+        )}
         <button className="btn ghost" onClick={() => onOpen(p.token)}>
           Chart
         </button>

@@ -91,6 +91,17 @@ export async function sendMessage(cfg: TelegramConfig, chatId: number | string, 
   await api(cfg, "sendMessage", { chat_id: chatId, text: html, parse_mode: "HTML", disable_web_page_preview: true });
 }
 
+/** A message with inline buttons; each button sends its `data` back as a callback query. */
+export async function sendButtons(cfg: TelegramConfig, chatId: number | string, html: string, rows: { text: string; data: string }[][]): Promise<void> {
+  await api(cfg, "sendMessage", {
+    chat_id: chatId,
+    text: html,
+    parse_mode: "HTML",
+    disable_web_page_preview: true,
+    reply_markup: { inline_keyboard: rows.map((r) => r.map((b) => ({ text: b.text, callback_data: b.data }))) },
+  });
+}
+
 const escape = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
 export function formatAlert(alert: AlertItem, siteUrl: string, tier: TierId = "holder"): string {
@@ -207,10 +218,30 @@ export async function markSent(token: string, alertId: string): Promise<boolean>
 interface TgUpdate {
   update_id: number;
   message?: { chat: { id: number; type: string }; from?: { username?: string }; text?: string };
+  callback_query?: { id: string; data?: string; message?: { message_id: number; chat: { id: number } } };
 }
 
-/** Handle one bot update: /start <code> links a chat, /stop unlinks it. */
+/** Review buttons on Satellites Bot drafts; only the admin chat may use them. */
+async function handleCallback(cfg: TelegramConfig, q: NonNullable<TgUpdate["callback_query"]>): Promise<void> {
+  const [scope, decision, draftId] = (q.data ?? "").split(":");
+  const chatId = q.message?.chat.id;
+  const admin = process.env.BOT_ADMIN_CHAT_ID;
+  if (scope !== "bot" || !draftId || (decision !== "post" && decision !== "skip") || !chatId || String(chatId) !== admin) {
+    await api(cfg, "answerCallbackQuery", { callback_query_id: q.id, text: "Not allowed" }).catch(() => undefined);
+    return;
+  }
+  await api(cfg, "answerCallbackQuery", { callback_query_id: q.id, text: decision === "post" ? "Posting…" : "Skipping" }).catch(() => undefined);
+  const { reviewDraft } = await import("../bot/bot");
+  const result = await reviewDraft(draftId, decision);
+  if (q.message) {
+    await api(cfg, "editMessageReplyMarkup", { chat_id: chatId, message_id: q.message.message_id, reply_markup: { inline_keyboard: [] } }).catch(() => undefined);
+  }
+  await sendMessage(cfg, chatId, escape(result));
+}
+
+/** Handle one bot update: /start <code> links a chat, /stop unlinks it, review buttons drive the X bot. */
 export async function handleUpdate(cfg: TelegramConfig, update: TgUpdate): Promise<void> {
+  if (update.callback_query) return handleCallback(cfg, update.callback_query);
   const msg = update.message;
   if (!msg?.text) return;
   const chatId = msg.chat.id;
@@ -260,7 +291,7 @@ export async function handleUpdate(cfg: TelegramConfig, update: TgUpdate): Promi
 export async function pollUpdates(cfg: TelegramConfig): Promise<void> {
   if (cfg.webhookSecret) return;
   const offset = (await getKv().get<number>("tg:offset")) ?? 0;
-  const updates = await api<TgUpdate[]>(cfg, "getUpdates", { offset, timeout: 0, allowed_updates: ["message"] }).catch(() => [] as TgUpdate[]);
+  const updates = await api<TgUpdate[]>(cfg, "getUpdates", { offset, timeout: 0, allowed_updates: ["message", "callback_query"] }).catch(() => [] as TgUpdate[]);
   for (const u of updates) {
     await handleUpdate(cfg, u).catch(() => undefined);
     await getKv().set("tg:offset", u.update_id + 1);

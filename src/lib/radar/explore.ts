@@ -6,6 +6,7 @@ import { recentCurveTrades, type RawCurveTrade } from "../data/ponsFlow";
 import { getPonsProfiles, type PonsSocials } from "../data/ponsProfile";
 import type { RobinhoodChainProvider } from "../data/robinhood";
 import { getTokenMeta } from "../data/tokenMeta";
+import { chainPools, type ChainPool } from "./chainwide";
 import { flowByCurve } from "./trenches";
 import { unitsToNumber } from "./whales";
 
@@ -14,7 +15,7 @@ import { unitsToNumber } from "./whales";
  * plus the last day of graduations, as one sortable, filterable table.
  */
 
-export type ExploreTab = "new" | "trending" | "almost" | "graduated";
+export type ExploreTab = "all" | "new" | "trending" | "almost" | "graduated";
 export type ExploreSort = "age" | "mcap" | "volume" | "progress" | "txns" | "net";
 
 /** Every Pons launch mints one billion tokens. */
@@ -45,6 +46,10 @@ export interface ExploreRow {
   txns30m: number;
   traders30m: number;
   url: string;
+  /** Where it launched or trades: "Pons", "Bankr", "Uniswap V4"… */
+  launchpad?: string;
+  /** True when SAT cannot route the trade itself; `url` then opens the pool to trade elsewhere. */
+  external?: boolean;
 }
 
 export interface ExploreQuery {
@@ -148,15 +153,54 @@ async function base(provider: RobinhoodChainProvider): Promise<Base> {
   return cache.get("explore:base:v2", BASE_TTL, () => buildBase(provider), { swr: true });
 }
 
-/** Every scanned launch, curves and graduated, without logos or socials. */
-export async function exploreUniverse(provider: RobinhoodChainProvider): Promise<{ rows: Base["curves"]; scanned: number; updatedAt: number }> {
-  const b = await base(provider);
-  return { rows: [...b.curves, ...b.graduated], scanned: b.curves.length, updatedAt: b.updatedAt };
+type UniverseRow = Omit<ExploreRow, "socials">;
+
+/** A pool from another launchpad or DEX, shaped like a graduated launch. */
+function chainRow(p: ChainPool): UniverseRow {
+  return {
+    token: p.token,
+    curve: null,
+    symbol: p.symbol,
+    name: p.name,
+    logoUrl: p.logoUrl,
+    deployer: null,
+    launchedAt: p.launchedAt,
+    graduatedAt: p.launchedAt ?? 0,
+    quoteSymbol: p.quoteSymbol,
+    paySymbol: p.quoteSymbol || "ETH",
+    payUsd: p.quoteUsd,
+    priceUsd: p.priceUsd,
+    mcapUsd: p.mcapUsd,
+    raisedUsd: p.liquidityUsd,
+    progressPct: 100,
+    vol30mUsd: p.vol30mUsd,
+    net30mUsd: p.net30mUsd,
+    txns30m: p.buys30m + p.sells30m,
+    traders30m: p.traders30m,
+    url: p.url,
+    launchpad: p.launchpad,
+    external: true,
+  };
 }
 
-const DEFAULT_SORT: Record<ExploreTab, ExploreSort> = { new: "age", trending: "volume", almost: "progress", graduated: "age" };
+/** Pons rows, plus every other launchpad's pools for tokens Pons does not already cover. */
+async function withChain(b: Base): Promise<{ pons: UniverseRow[]; chain: UniverseRow[] }> {
+  const pons = [...b.curves, ...b.graduated].map((r) => ({ ...r, launchpad: "Pons" }));
+  const known = new Set(pons.map((r) => r.token.toLowerCase()));
+  const { pools } = await chainPools().catch(() => ({ pools: [] as ChainPool[] }));
+  return { pons, chain: pools.filter((p) => !known.has(p.token)).map(chainRow) };
+}
 
-function sortKey(row: Base["curves"][number], sort: ExploreSort, tab: ExploreTab): number {
+/** Every launch SAT sees: Pons curves and graduates, and pools from every other launchpad on the chain. */
+export async function exploreUniverse(provider: RobinhoodChainProvider): Promise<{ rows: UniverseRow[]; scanned: number; updatedAt: number }> {
+  const b = await base(provider);
+  const { pons, chain } = await withChain(b);
+  return { rows: [...pons, ...chain], scanned: pons.length + chain.length, updatedAt: b.updatedAt };
+}
+
+const DEFAULT_SORT: Record<ExploreTab, ExploreSort> = { all: "volume", new: "age", trending: "volume", almost: "progress", graduated: "age" };
+
+function sortKey(row: UniverseRow, sort: ExploreSort, tab: ExploreTab): number {
   switch (sort) {
     case "age":
       return tab === "graduated" ? (row.graduatedAt ?? 0) : (row.launchedAt ?? 0);
@@ -176,14 +220,16 @@ function sortKey(row: Base["curves"][number], sort: ExploreSort, tab: ExploreTab
 /** Filter, sort and page the table, then attach logos and socials to the rows shown. */
 export async function explore(provider: RobinhoodChainProvider, query: ExploreQuery): Promise<ExplorePage> {
   const b = await base(provider);
+  const { chain } = await withChain(b);
   const almost = b.curves.filter((r) => r.progressPct < 100 && r.raisedUsd > 0);
   const trending = b.curves.filter((r) => r.txns30m > 0);
-  const pools: Record<ExploreTab, Base["curves"]> = { new: b.curves, trending, almost, graduated: b.graduated };
+  const all = [...trending.map((r) => ({ ...r, launchpad: "Pons" })), ...b.graduated.map((r) => ({ ...r, launchpad: "Pons" })), ...chain];
+  const pools: Record<ExploreTab, UniverseRow[]> = { all, new: b.curves, trending, almost, graduated: b.graduated };
 
   const q = query.q?.trim().toLowerCase().replace(/^\$/, "");
   const sort = query.sort ?? DEFAULT_SORT[query.tab];
   let rows = pools[query.tab].filter((r) => {
-    if (q && !r.symbol.toLowerCase().includes(q) && !r.name.toLowerCase().includes(q) && r.token.toLowerCase() !== q) return false;
+    if (q && !r.symbol.toLowerCase().includes(q) && !r.name.toLowerCase().includes(q) && r.token.toLowerCase() !== q && !(r.launchpad ?? "").toLowerCase().includes(q)) return false;
     if (query.minMcap && (r.mcapUsd ?? 0) < query.minMcap) return false;
     if (query.minVol && r.vol30mUsd < query.minVol) return false;
     return true;
@@ -203,17 +249,17 @@ export async function explore(provider: RobinhoodChainProvider, query: ExploreQu
     });
   }
   const page = candidates.slice(offset, offset + limit);
-  const profiles = await getPonsProfiles(page.map((r) => r.token)).catch(() => new Map());
+  const profiles = await getPonsProfiles(page.filter((r) => !r.external).map((r) => r.token)).catch(() => new Map());
 
   return {
     tab: query.tab,
-    counts: { new: b.curves.length, trending: trending.length, almost: almost.length, graduated: b.graduated.length },
+    counts: { all: all.length, new: b.curves.length, trending: trending.length, almost: almost.length, graduated: b.graduated.length },
     total: query.socials ? candidates.length : rows.length,
     rows: page.map((r) => {
       const p = profiles.get(r.token.toLowerCase());
-      return { ...r, logoUrl: p?.logoUrl ?? undefined, socials: p?.socials };
+      return { ...r, logoUrl: p?.logoUrl ?? r.logoUrl ?? undefined, socials: p?.socials };
     }),
-    scanned: b.curves.length,
+    scanned: b.curves.length + chain.length,
     updatedAt: b.updatedAt,
   };
 }
