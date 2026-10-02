@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { z } from "zod";
+import { isTokenAddress } from "@/lib/address";
 import { STYLE_PRESETS, StrategySchema, type PickPlan, type Strategy, type Style, type TrackedPosition } from "@/lib/agent/strategy";
 
 const STYLE_KEY = "sat:agent:style";
@@ -21,7 +22,7 @@ const ActiveSchema = z.union([
 ]);
 
 const PositionSchema = z.object({
-  token: z.string().regex(/^0x[0-9a-fA-F]{40}$/),
+  token: z.string().refine(isTokenAddress),
   symbol: z.string(),
   openedAt: z.number(),
   plan: z.custom<PickPlan>((v) => typeof v === "object" && v !== null && "entryMcap" in v),

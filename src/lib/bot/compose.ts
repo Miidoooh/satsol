@@ -10,7 +10,7 @@ export const TWEET_MAX = 280;
 
 export interface CallFacts {
   symbol: string;
-  token: `0x${string}`;
+  token: string;
   launchpad: string;
   mcap: string;
   age: string | null;
@@ -25,7 +25,7 @@ export interface CallFacts {
 
 export interface BotCall {
   id: string;
-  token: `0x${string}`;
+  token: string;
   symbol: string;
   at: number;
   entryMcap: number;

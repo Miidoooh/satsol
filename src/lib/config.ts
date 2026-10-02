@@ -9,6 +9,11 @@ const addr = z
 const emptyToUndef = (v: unknown) => (v === "" ? undefined : v);
 
 const EnvSchema = z.object({
+  /** The chain SAT watches. Solana is the main chain; Robinhood Chain code stays for reference. */
+  SAT_CHAIN: z.enum(["solana", "robinhood"]).default(process.env.NEXT_PUBLIC_SAT_CHAIN === "robinhood" ? "robinhood" : "solana"),
+  /** Helius (Solana RPC and data). Needed for wallets, safety and whale data on Solana. */
+  HELIUS_API_KEY: z.preprocess(emptyToUndef, z.string().optional()),
+
   OPENAI_API_KEY: z.preprocess(emptyToUndef, z.string().optional()),
   OPENAI_MODEL: z.string().default("gpt-4o"),
   /** Kimi (Moonshot). When set, the agent thinks with Kimi instead of OpenAI. */

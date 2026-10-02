@@ -1,3 +1,4 @@
+import { getConfig } from "../config";
 import { getKv } from "../store/kv";
 import type { Pick, Style } from "./strategy";
 
@@ -7,13 +8,13 @@ import type { Pick, Style } from "./strategy";
  * is traded; this only shows how a style's calls played out.
  */
 
-const KEY = (style: Style) => `agent:track:v1:${style}`;
+const KEY = (style: Style) => `agent:track:v2:${getConfig().SAT_CHAIN}:${style}`;
 const WINDOW_S = 24 * 3600;
 const KEEP_S = 72 * 3600;
 const MAX_ENTRIES = 400;
 
 export interface TrackEntry {
-  token: `0x${string}`;
+  token: string;
   symbol: string;
   at: number;
   entryMcap: number;
@@ -28,7 +29,7 @@ export interface TrackStats {
   hit5x: number;
   /** Share of picks whose peak reached at least 1.5x. */
   winRatePct: number;
-  best: { symbol: string; token: `0x${string}`; x: number } | null;
+  best: { symbol: string; token: string; x: number } | null;
   medianPeakX: number | null;
   windowHours: number;
 }

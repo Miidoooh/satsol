@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { ON_SOLANA } from "@/lib/chainMode";
 import { fmtAgo, fmtPct, fmtPrice, fmtUsd } from "@/lib/format";
 import type { PonsTokenDetail } from "@/lib/data/ponsToken";
 import type { ExplorePage } from "@/lib/radar/explore";
@@ -180,7 +181,7 @@ export function LiveLaunches({ limit = 5, onOpen }: { limit?: number; onOpen?: O
   return (
     <div className="sx-card">
       <div className="sx-card-head">
-        <span>Fresh launches · Pons</span>
+        <span>Fresh launches · {ON_SOLANA ? "Solana" : "Pons"}</span>
         <span className="sx-live-tag">
           <span className="dot live" /> live
         </span>

@@ -19,10 +19,10 @@ import StyleEditor from "./StyleEditor";
 const PICKS_MS = 20_000;
 
 const PRESETS: { id: PresetId; emoji: string; name: string; blurb: string }[] = [
-  { id: "sniper", emoji: "🎯", name: "Sniper", blurb: "Fresh launches under $15K with real buyers and socials. In early, out fast." },
-  { id: "momentum", emoji: "🚀", name: "Momentum", blurb: "Tokens where volume, buyers and net buying are all climbing right now." },
-  { id: "graduation", emoji: "🎓", name: "Graduation play", blurb: "Curves 60–99% bonded with steady buying, before they hit Uniswap." },
-  { id: "whale", emoji: "🐋", name: "Whale shadow", blurb: "Follow the big money: $3K+ net buying in 30 minutes, safety checked." },
+  { id: "sniper", emoji: "🎯", name: "Sniper", blurb: "Launches under 15 minutes old and $60K mcap, with 25+ real buyers. In early, out fast." },
+  { id: "momentum", emoji: "🚀", name: "Momentum", blurb: "$50K to $5M tokens where volume, buyers and net buying are all climbing right now." },
+  { id: "graduation", emoji: "🎓", name: "Graduation play", blurb: "pump.fun curves 70–99% bonded with steady buying, before they graduate." },
+  { id: "whale", emoji: "🐋", name: "Whale shadow", blurb: "Follow the big money: $25K+ net buying in 30 minutes, pool depth checked." },
 ];
 
 interface Props {
@@ -119,7 +119,7 @@ export default function AgentView({ agentEnabled, onOpenToken }: Props) {
             Hunting with <em>{strategy.name}</em>
           </h1>
           <p className="muted">
-            SAT scans every launch on Pons and Uniswap around the clock and tells you what fits your style: what to buy, at what market cap, and exactly when to sell.
+            SAT scans every launch on Solana around the clock (pump.fun, PumpSwap, Raydium, Meteora and more) and tells you what fits your style: what to buy, at what market cap, and exactly when to sell.
             You sign every trade.
           </p>
           <div className="ag-status mono">

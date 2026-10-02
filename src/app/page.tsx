@@ -35,12 +35,12 @@ export default function Landing() {
         <OrbitHero />
         <div className="sx-hero-copy sx-wrap">
           <span className="sx-chip">
-            <b>LIVE</b> Robinhood Chain · watching now
+            <b>LIVE</b> Solana · watching now
           </span>
           <h1>
-            Your satellite over <em>Robinhood Chain</em>
+            Your satellite over <em>Solana</em>
           </h1>
-          <p className="sx-sub">Every launch, every pump and every whale on Pons and Uniswap. SAT watches Robinhood Chain for you and tells you what is running before the timeline does.</p>
+          <p className="sx-sub">Every launch, every pump and every whale on pump.fun, PumpSwap, Raydium and Meteora. SAT watches Solana for you and tells you what is running before the timeline does.</p>
           <div className="sx-cta">
             <Link className="sx-btn primary" href="/app">
               Open SAT →
@@ -77,7 +77,7 @@ export default function Landing() {
           <div className="sx-foot-top">
             <Logo size={26} />
             <span className="brand-name">SAT</span>
-            <span className="dim">Your satellite over Robinhood Chain</span>
+            <span className="dim">Your satellite over Solana</span>
             <div className="spacer" style={{ flex: 1 }} />
             <Link href="/app">App</Link>
             <Link href="/report">Report</Link>

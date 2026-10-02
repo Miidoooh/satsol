@@ -11,11 +11,11 @@ export interface XPost {
   retweets: number;
   views: number;
   author: { userName: string; name: string; followers: number; verified: boolean; avatar?: string };
-  tokens: { token: `0x${string}`; symbol: string }[];
+  tokens: { token: string; symbol: string }[];
 }
 
 export interface TokenBuzz {
-  token: `0x${string}`;
+  token: string;
   symbol: string;
   mentions1h: number;
   mentions24h: number;

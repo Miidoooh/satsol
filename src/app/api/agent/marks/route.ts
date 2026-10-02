@@ -3,6 +3,9 @@ import { z } from "zod";
 import { getProvider } from "@/lib/data/provider";
 import { RobinhoodChainProvider } from "@/lib/data/robinhood";
 import { errorResponse, rateLimit } from "@/lib/http";
+import { addrKey, isTokenAddress } from "@/lib/address";
+import { getConfig } from "@/lib/config";
+import { tokenMarks } from "@/lib/radar/chainwide";
 import { exploreUniverse } from "@/lib/radar/explore";
 
 export const runtime = "nodejs";
@@ -15,7 +18,7 @@ const MAX_LOOKUPS = 6;
 const Query = z.object({
   tokens: z
     .string()
-    .transform((v) => [...new Set(v.split(",").map((t) => t.trim().toLowerCase()))].filter((t) => /^0x[0-9a-f]{40}$/.test(t)))
+    .transform((v) => [...new Set(v.split(",").map((t) => t.trim()))].filter(isTokenAddress))
     .pipe(z.array(z.string()).min(1).max(40)),
 });
 
@@ -33,15 +36,19 @@ export async function GET(req: Request) {
     const marks: Record<string, { mcapUsd: number; priceUsd: number }> = {};
     const missing: string[] = [];
     for (const t of parsed.data.tokens) {
-      const r = byToken.get(t);
-      if (r?.mcapUsd && r.priceUsd) marks[t] = { mcapUsd: r.mcapUsd, priceUsd: r.priceUsd };
+      const r = byToken.get(addrKey(t));
+      if (r?.mcapUsd && r.priceUsd) marks[addrKey(t)] = { mcapUsd: r.mcapUsd, priceUsd: r.priceUsd };
       else missing.push(t);
     }
-    // Older graduates fall out of the scan; read those directly.
+    // Tokens that fell out of the scan are read directly.
+    if (getConfig().SAT_CHAIN === "solana") {
+      for (const [k, v] of await tokenMarks(missing)) marks[k] = v;
+      return NextResponse.json({ marks, at: Date.now() });
+    }
     await Promise.all(
       missing.slice(0, MAX_LOOKUPS).map(async (t) => {
         const m = await provider.findToken(t).catch(() => null);
-        if (m && m.priceUsd > 0) marks[t] = { mcapUsd: m.priceUsd * SUPPLY, priceUsd: m.priceUsd };
+        if (m && m.priceUsd > 0) marks[addrKey(t)] = { mcapUsd: m.priceUsd * SUPPLY, priceUsd: m.priceUsd };
       }),
     );
     return NextResponse.json({ marks, at: Date.now() });

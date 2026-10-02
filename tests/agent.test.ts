@@ -25,11 +25,11 @@ const launch = (over: Partial<Candidate> = {}): Candidate => ({
   launchedAt: NOW - 5 * 60,
   graduatedAt: null,
   priceUsd: 0.000008,
-  mcapUsd: 8_000,
+  mcapUsd: 20_000,
   progressPct: 12,
-  vol30mUsd: 2_000,
-  net30mUsd: 600,
-  traders30m: 20,
+  vol30mUsd: 5_000,
+  net30mUsd: 1_500,
+  traders30m: 40,
   url: "https://pons.family/token/x",
   ...over,
 });
@@ -42,22 +42,22 @@ describe("style filters", () => {
   });
 
   it("says exactly why a launch does not fit", () => {
-    expect(rejectReason(sniper, launch({ mcapUsd: 40_000 }), NOW)).toBe("mcap too high");
+    expect(rejectReason(sniper, launch({ mcapUsd: 90_000 }), NOW)).toBe("mcap too high");
     expect(rejectReason(sniper, launch({ launchedAt: NOW - 3 * 3600 }), NOW)).toBe("too old");
     expect(rejectReason(sniper, launch({ traders30m: 2 }), NOW)).toBe("too few traders");
-    expect(rejectReason(sniper, launch({ socials: undefined }), NOW)).toBe("no socials");
+    expect(rejectReason({ ...sniper, requireSocials: true }, launch({ socials: undefined }), NOW)).toBe("no socials");
     expect(rejectReason(sniper, launch({ graduatedAt: NOW - 60 }), NOW)).toBeNull();
     expect(rejectReason(STYLE_PRESETS.graduation, launch({ graduatedAt: NOW - 60 }), NOW)).toBe("graduated");
   });
 
   it("ranks the stronger launch first and drops the ones that fail", () => {
-    const weak = launch({ token: tok(2), symbol: "WEAK", net30mUsd: 150, traders30m: 9, vol30mUsd: 400 });
-    const strong = launch({ token: tok(3), symbol: "STRONG", net30mUsd: 4_000, traders30m: 80, vol30mUsd: 20_000 });
+    const weak = launch({ token: tok(2), symbol: "WEAK", net30mUsd: 600, traders30m: 30, vol30mUsd: 3_500 });
+    const strong = launch({ token: tok(3), symbol: "STRONG", net30mUsd: 20_000, traders30m: 300, vol30mUsd: 100_000 });
     const old = launch({ token: tok(4), symbol: "OLD", launchedAt: NOW - 86_400 });
     const picks = matchPicks(sniper, [weak, strong, old], NOW);
     expect(picks.map((p) => p.symbol)).toEqual(["STRONG", "WEAK"]);
     expect(picks[0].score).toBeGreaterThan(picks[1].score);
-    expect(picks[0].reasons.join(" ")).toContain("80 wallets traded it in 30m");
+    expect(picks[0].reasons.join(" ")).toContain("300 wallets traded it in 30m");
   });
 
   it("only keeps safety-checked launches when the style sets a minimum", () => {
@@ -128,8 +128,8 @@ describe("telegram pick message", () => {
     const [pick] = matchPicks(STYLE_PRESETS.sniper, [launch({ symbol: "<B>" })], NOW);
     const text = formatPick({ ...pick, warnings: ["Copycat ticker"] }, "Sniper & co", "https://sathood.xyz");
     expect(text).toContain("New pick for Sniper &amp; co: &lt;B&gt;");
-    expect(text).toContain("sell 50% at $16.0K (2×), 50% at $40.0K (5×)");
-    expect(text).toContain("Stop at $4.8K (−40%)");
+    expect(text).toContain("sell 50% at $40.0K (2×), 50% at $100.0K (5×)");
+    expect(text).toContain("Stop at $12.0K (−40%)");
     expect(text).toContain("⚠️ Copycat ticker");
     expect(text).toContain(`https://sathood.xyz/app?token=${tok(1)}`);
   });
@@ -148,10 +148,10 @@ describe("copycats and track record", () => {
   it("logs each pick once per day and scores it by its peak", () => {
     const [pick] = matchPicks(STYLE_PRESETS.sniper, [launch()], NOW);
     let track = mergeTrack([], [pick], new Map(), NOW);
-    track = mergeTrack(track, [pick], new Map([[tok(1), 24_000]]), NOW + 600);
-    track = mergeTrack(track, [], new Map([[tok(1), 12_000]]), NOW + 1200);
+    track = mergeTrack(track, [pick], new Map([[tok(1), 60_000]]), NOW + 600);
+    track = mergeTrack(track, [], new Map([[tok(1), 30_000]]), NOW + 1200);
     expect(track).toHaveLength(1);
-    expect(track[0]).toMatchObject({ entryMcap: 8_000, peakMcap: 24_000, lastMcap: 12_000 });
+    expect(track[0]).toMatchObject({ entryMcap: 20_000, peakMcap: 60_000, lastMcap: 30_000 });
     const stats = trackStats("sniper", track, NOW + 1200);
     expect(stats).toMatchObject({ picks: 1, hit2x: 1, hit5x: 0, winRatePct: 100 });
     expect(stats.best?.x).toBe(3);

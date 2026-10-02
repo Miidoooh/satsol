@@ -1,3 +1,4 @@
+import { isEvmAddress } from "../address";
 import { cache } from "../cache";
 import { ponsTokenDetail } from "../data/ponsToken";
 import { getPonsProfiles } from "../data/ponsProfile";
@@ -8,6 +9,7 @@ import { fitScore, flagCopycats, matchPicks, rejectReason, type Candidate, type 
 
 /** Launches checked for socials per request; profiles are one multicall per token. */
 const PROFILE_WINDOW = 120;
+const evmOnly = (tokens: string[]) => tokens.filter(isEvmAddress) as `0x${string}`[];
 const SAFETY_TTL_MS = 5 * 60_000;
 
 export interface PicksResult {
@@ -63,7 +65,7 @@ export async function picksFor(provider: RobinhoodChainProvider, s: Strategy, li
     .filter((r) => rejectReason(loose, r, now) === null)
     .sort((a, b) => fitScore(s, b, now) - fitScore(s, a, now))
     .slice(0, PROFILE_WINDOW);
-  const profiles = await getPonsProfiles(pre.filter((r) => !r.external).map((r) => r.token)).catch(() => new Map());
+  const profiles = await getPonsProfiles(evmOnly(pre.filter((r) => !r.external).map((r) => r.token))).catch(() => new Map());
   const candidates: Candidate[] = pre.map((r) => {
     const p = profiles.get(r.token.toLowerCase());
     return { ...r, logoUrl: p?.logoUrl ?? r.logoUrl ?? undefined, socials: p?.socials };
@@ -74,7 +76,7 @@ export async function picksFor(provider: RobinhoodChainProvider, s: Strategy, li
   const top = shortlist.slice(0, strictSafety ? limit * 2 : 6);
   const safety = await safetyOf(
     provider,
-    top.filter((p) => !p.external).map((p) => p.token),
+    evmOnly(top.filter((p) => !p.external).map((p) => p.token)),
   ).catch(() => new Map<string, { score: number; label: string }>());
   const byToken = new Map(candidates.map((c) => [c.token.toLowerCase(), c]));
   for (const p of top) {

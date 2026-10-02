@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { jupiterUrl, ON_SOLANA } from "@/lib/chainMode";
 import { fmtAgo, fmtPrice, fmtUsd } from "@/lib/format";
 import type { ExplorePage, ExploreRow, ExploreSort, ExploreTab } from "@/lib/radar/explore";
 import { setMood } from "./brand/mood";
@@ -280,8 +281,15 @@ export default function ExploreView({ onOpenToken }: Props) {
             </Flash>
             <span className="ex-actions">
               {r.external ? (
-                <a className="btn sm" href={r.url} target="_blank" rel="noreferrer noopener" onClick={(e) => e.stopPropagation()} title={`Trades on ${r.launchpad}; opens its pool`}>
-                  Trade ↗
+                <a
+                  className="btn sm ex-quick"
+                  href={ON_SOLANA ? jupiterUrl(r.token) : r.url}
+                  target="_blank"
+                  rel="noreferrer noopener"
+                  onClick={(e) => e.stopPropagation()}
+                  title={ON_SOLANA ? "Buy on Jupiter with this token selected" : `Trades on ${r.launchpad}; opens its pool`}
+                >
+                  {ON_SOLANA ? "Buy ↗" : "Trade ↗"}
                 </a>
               ) : (
               <button

@@ -3,7 +3,7 @@ import { satelliteDataUri } from "@/lib/brand/satelliteSvg";
 
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
-export const alt = "SAT — Your satellite over Robinhood Chain";
+export const alt = "SAT — Your satellite over Solana";
 
 /** The card people see when sathood.xyz is shared. */
 export default function OpenGraphImage() {
@@ -29,7 +29,7 @@ export default function OpenGraphImage() {
             </div>
           </div>
           <div style={{ display: "flex", fontSize: 120, fontWeight: 800, letterSpacing: -4, lineHeight: 1 }}>SAT</div>
-          <div style={{ display: "flex", fontSize: 50, fontWeight: 700, lineHeight: 1.1, color: "#CCFF00" }}>Your satellite over Robinhood Chain</div>
+          <div style={{ display: "flex", fontSize: 50, fontWeight: 700, lineHeight: 1.1, color: "#CCFF00" }}>Your satellite over Solana</div>
           <div style={{ display: "flex", fontSize: 26, color: "#B4BCDB" }}>Whales, hot launches and every move, spotted first.</div>
         </div>
         {/* eslint-disable-next-line @next/next/no-img-element */}

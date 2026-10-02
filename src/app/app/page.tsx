@@ -25,6 +25,8 @@ import TradePanel from "@/components/TradePanel";
 import { useWallet, WalletProvider, type ChainInfo } from "@/components/wallet";
 import WalletTracker from "@/components/WalletTracker";
 import WhaleRadar from "@/components/WhaleRadar";
+import { isTokenAddress } from "@/lib/address";
+import { CHAIN_NAME, ON_SOLANA, tokenChartUrl } from "@/lib/chainMode";
 import { ponsTokenUrl, ROBINHOOD_MAINNET } from "@/lib/chain/constants";
 import { fmtAge, fmtNum, fmtPct, fmtPrice, fmtUsd } from "@/lib/format";
 import type { Candle, ChartAnalysis, ProviderCapabilities, Timeframe, TokenMarket } from "@/lib/types";
@@ -53,7 +55,7 @@ interface CandleResponse {
 const ALL_TF: Timeframe[] = ["5m", "15m", "1h", "4h", "1d"];
 /** Pons curves chart from their own trades, so they get finer timeframes than oracle history. */
 const PONS_TF: Timeframe[] = ["5m", "15m", "1h", "4h"];
-const isAddress = (s: string) => /^0x[0-9a-fA-F]{40}$/.test(s);
+const isAddress = isTokenAddress;
 
 type View = "home" | "terminal" | "explore" | "agent" | "radar" | "trenches" | "wallets" | "portfolio" | "sat";
 const VIEWS: { id: View; label: string; short: string; icon: React.ReactNode; hint: string; isNew?: boolean; mobile?: boolean }[] = [
@@ -68,7 +70,10 @@ const VIEWS: { id: View; label: string; short: string; icon: React.ReactNode; hi
   { id: "sat", label: "Hold SAT", short: "SAT", icon: <IconDiamond />, hint: "SAT token, tiers and perks" },
 ];
 const MODE_KEY = "sat:mode";
-const isView = (v: string | null): v is View => VIEWS.some((x) => x.id === v);
+/** Views that work on Solana today; the rest return as they are rebuilt for it. */
+const SOLANA_VIEWS = new Set<View>(["home", "explore", "agent"]);
+const SHOWN = ON_SOLANA ? VIEWS.filter((v) => SOLANA_VIEWS.has(v.id)) : VIEWS;
+const isView = (v: string | null): v is View => SHOWN.some((x) => x.id === v);
 
 /** The command palette, inside the wallet provider so it can offer wallet actions. */
 function PaletteHost(props: { tokens: TokenMarket[]; officialToken?: string; onOpenToken: (address: string) => void; onView: (id: string) => void }) {
@@ -89,7 +94,7 @@ function PaletteHost(props: { tokens: TokenMarket[]; officialToken?: string; onO
     <CommandPalette
       tokens={props.tokens}
       officialToken={props.officialToken}
-      views={VIEWS.map((v) => ({ id: v.id, label: v.label, icon: v.icon, hint: v.hint }))}
+      views={SHOWN.map((v) => ({ id: v.id, label: v.label, icon: v.icon, hint: v.hint }))}
       onOpenToken={props.onOpenToken}
       onView={props.onView}
       actions={actions}
@@ -98,7 +103,7 @@ function PaletteHost(props: { tokens: TokenMarket[]; officialToken?: string; onO
 }
 
 export default function Terminal() {
-  const [view, setView] = useState<View>("terminal");
+  const [view, setView] = useState<View>(ON_SOLANA ? "home" : "terminal");
   const [wallet, setWallet] = useState("");
   const [market, setMarket] = useState<MarketResponse | null>(null);
   /** Pons launches opened from a live view that are not in the market list. */
@@ -117,7 +122,7 @@ export default function Terminal() {
     const v = params.get("view");
     if (isView(v)) setView(v);
     // Newcomers start in Simple mode; anyone who picked Pro keeps the terminal.
-    else if (!params.get("token") && !params.get("wallet") && localStorage.getItem(MODE_KEY) !== "pro") setView("home");
+    else if (ON_SOLANA || (!params.get("token") && !params.get("wallet") && localStorage.getItem(MODE_KEY) !== "pro")) setView("home");
     const w = params.get("wallet");
     if (w && isAddress(w)) setWallet(w);
     const t = params.get("token");
@@ -151,6 +156,10 @@ export default function Terminal() {
   /** Open a token from a live view in the terminal. Unlisted Pons launches are looked up on chain first. */
   const openToken = useCallback(
     async (address: string, fallbackUrl?: string) => {
+      if (ON_SOLANA) {
+        window.open(tokenChartUrl(address), "_blank", "noopener,noreferrer");
+        return;
+      }
       const listed = allTokens.find((t) => t.token.address.toLowerCase() === address.toLowerCase());
       if (listed) {
         setSelected(listed.token.address);
@@ -245,6 +254,7 @@ export default function Terminal() {
           <span className="brand-name">SAT</span>
         </Link>
         <MascotStatus />
+        {!ON_SOLANA && (
         <div className="mode-switch" role="group" aria-label="Simple or Pro mode">
           <button className={view === "home" ? "active" : ""} onClick={() => switchView("home")}>
             Simple
@@ -253,15 +263,16 @@ export default function Terminal() {
             Pro
           </button>
         </div>
+        )}
         <span
           className={`pill chain-pill ${!market || market.source === "robinhood-chain" ? "ok" : "warn"}`}
           title={market && market.source !== "robinhood-chain" ? `Data source: ${market.source}` : "Live Robinhood Chain mainnet data"}
         >
           <span className={!market || market.source === "robinhood-chain" ? "dot live" : "dot"} />
-          {market?.chain.name ?? "Robinhood Chain"}
+          {ON_SOLANA ? CHAIN_NAME : (market?.chain.name ?? CHAIN_NAME)}
         </span>
         <nav className="tfs view-tabs" role="tablist">
-          {VIEWS.map((v) => (
+          {SHOWN.map((v) => (
             <button key={v.id} className={`tf ${view === v.id ? "active" : ""}`} onClick={() => switchView(v.id)} title={v.hint}>
               {v.icon}
               <span className="view-label">{v.label}</span>
@@ -275,14 +286,14 @@ export default function Terminal() {
           <span>Search</span>
           <kbd>⌘K</kbd>
         </button>
-        <SatPill onOpen={() => switchView("sat")} />
+        {!ON_SOLANA && <SatPill onOpen={() => switchView("sat")} />}
         <AlertsCenter
           onOpenToken={(token, url) => void openToken(token, url)}
           onOpenWallet={openWallet}
           onOpenSat={() => switchView("sat")}
           agentEnabled={market?.agentEnabled ?? false}
         />
-        <ConnectButton onPortfolio={() => switchView("portfolio")} />
+        {!ON_SOLANA && <ConnectButton onPortfolio={() => switchView("portfolio")} />}
       </header>
 
       <PaletteHost
@@ -292,7 +303,7 @@ export default function Terminal() {
         onView={(id) => isView(id) && switchView(id)}
       />
       <nav className="mobile-nav" aria-label="Views">
-        {VIEWS.filter((v) => v.mobile).map((v) => (
+        {SHOWN.filter((v) => v.mobile).map((v) => (
           <button key={v.id} className={view === v.id ? "active" : ""} onClick={() => switchView(v.id)}>
             {v.icon}
             <span>{v.short}</span>
@@ -323,7 +334,7 @@ export default function Terminal() {
         />
       )}
       {view === "home" && (
-        <HomeView onOpenToken={(token) => void openToken(token)} onExplore={() => switchView("explore")} onRadar={() => switchView("radar")} />
+        <HomeView onOpenToken={(token) => void openToken(token)} onExplore={() => switchView("explore")} onRadar={() => switchView("radar")} onAgent={() => switchView("agent")} />
       )}
       {view === "explore" && <ExploreView onOpenToken={(token, url) => void openToken(token, url)} />}
       {view === "agent" && <AgentView agentEnabled={market?.agentEnabled ?? false} onOpenToken={(token) => void openToken(token)} />}

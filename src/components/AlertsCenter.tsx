@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { DEFAULT_ALERT_SETTINGS, detectAlerts, type AlertItem, type AlertSettings } from "@/lib/alerts/detect";
 import { evaluateRules, newRuleState, planPoll } from "@/lib/alerts/rules";
+import { ON_SOLANA } from "@/lib/chainMode";
 import { fmtUsd } from "@/lib/format";
 import { socialAlerts, type SocialSnapshot } from "@/lib/social/posts";
 import type { TrenchesSnapshot } from "@/lib/radar/trenches";
@@ -125,6 +126,8 @@ export default function AlertsCenter({ onOpenToken, onOpenWallet, onOpenSat, age
   useEffect(() => {
     if (!settings.enabled) return;
     let alive = true;
+    // Whale, curve and rule alerts read Robinhood Chain feeds; on Solana only the X radar runs for now.
+    if (ON_SOLANA) return;
     // Restarting (new thresholds, follows or rules) begins from a clean slate so old trades don't all fire at once.
     let first = true;
     const seen = new Set<string>();

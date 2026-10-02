@@ -48,14 +48,14 @@ export const STYLE_PRESETS: Record<Exclude<Style, "custom">, Strategy> = {
     name: "Sniper",
     style: "sniper",
     stage: "any",
-    mcapMin: 3_000,
-    mcapMax: 15_000,
-    maxAgeMin: 20,
-    minVol30mUsd: 300,
-    minNet30mUsd: 100,
-    minBuyers30m: 8,
-    requireSocials: true,
-    buyUsd: 10,
+    mcapMin: 6_000,
+    mcapMax: 60_000,
+    maxAgeMin: 15,
+    minVol30mUsd: 3_000,
+    minNet30mUsd: 500,
+    minBuyers30m: 25,
+    requireSocials: false,
+    buyUsd: 20,
     takeProfits: [
       { atX: 2, sellPct: 50 },
       { atX: 5, sellPct: 50 },
@@ -67,13 +67,13 @@ export const STYLE_PRESETS: Record<Exclude<Style, "custom">, Strategy> = {
     name: "Momentum",
     style: "momentum",
     stage: "any",
-    mcapMin: 10_000,
-    mcapMax: 250_000,
-    minVol30mUsd: 5_000,
-    minNet30mUsd: 1_000,
-    minBuyers30m: 25,
+    mcapMin: 50_000,
+    mcapMax: 5_000_000,
+    minVol30mUsd: 50_000,
+    minNet30mUsd: 5_000,
+    minBuyers30m: 120,
     requireSocials: false,
-    buyUsd: 25,
+    buyUsd: 50,
     takeProfits: [
       { atX: 1.5, sellPct: 50 },
       { atX: 3, sellPct: 50 },
@@ -86,13 +86,12 @@ export const STYLE_PRESETS: Record<Exclude<Style, "custom">, Strategy> = {
     style: "graduation",
     stage: "curve",
     mcapMin: 0,
-    minProgressPct: 60,
+    minProgressPct: 70,
     maxProgressPct: 99,
-    minVol30mUsd: 200,
-    minNet30mUsd: 0,
-    minBuyers30m: 3,
+    minVol30mUsd: 5_000,
+    minNet30mUsd: 1_000,
+    minBuyers30m: 40,
     requireSocials: false,
-    minSafety: 60,
     buyUsd: 25,
     takeProfits: [
       { atX: 2, sellPct: 50 },
@@ -104,14 +103,14 @@ export const STYLE_PRESETS: Record<Exclude<Style, "custom">, Strategy> = {
     name: "Whale shadow",
     style: "whale",
     stage: "any",
-    mcapMin: 5_000,
-    mcapMax: 1_000_000,
-    minVol30mUsd: 3_000,
-    minNet30mUsd: 3_000,
-    minBuyers30m: 10,
+    mcapMin: 100_000,
+    mcapMax: 50_000_000,
+    minVol30mUsd: 100_000,
+    minNet30mUsd: 25_000,
+    minBuyers30m: 80,
     requireSocials: false,
-    minSafety: 50,
-    buyUsd: 25,
+    minSafety: 55,
+    buyUsd: 50,
     takeProfits: [
       { atX: 2, sellPct: 50 },
       { atX: 4, sellPct: 50 },
@@ -120,10 +119,9 @@ export const STYLE_PRESETS: Record<Exclude<Style, "custom">, Strategy> = {
     trailingPct: 25,
   },
 };
-
 /** The token facts a style is checked against: one Explore row. */
 export interface Candidate {
-  token: `0x${string}`;
+  token: string;
   symbol: string;
   name: string;
   logoUrl?: string;
@@ -164,7 +162,7 @@ export interface PickPlan {
 }
 
 export interface Pick {
-  token: `0x${string}`;
+  token: string;
   symbol: string;
   name: string;
   logoUrl?: string;
@@ -241,9 +239,9 @@ export function rejectReason(s: Strategy, c: Candidate, now: number): string | n
 /** How strongly a passing candidate fits, 0 to 100. */
 export function fitScore(s: Strategy, c: Candidate, now: number, safety?: number): number {
   const ageMin = c.launchedAt !== null ? (now - c.launchedAt) / 60 : null;
-  const flow = clamp01(Math.log10(1 + Math.max(0, c.net30mUsd)) / 4);
-  const crowd = clamp01(c.traders30m / 60);
-  const volume = clamp01(Math.log10(1 + c.vol30mUsd) / 4.5);
+  const flow = clamp01(Math.log10(1 + Math.max(0, c.net30mUsd)) / 5);
+  const crowd = clamp01(c.traders30m / 300);
+  const volume = clamp01(Math.log10(1 + c.vol30mUsd) / 6);
   const timing =
     s.style === "sniper"
       ? ageMin === null
@@ -338,7 +336,7 @@ export function flagCopycats(picks: Pick[], universe: { token: string; symbol: s
 
 /** A position opened from a pick, tracked against its plan. */
 export interface TrackedPosition {
-  token: `0x${string}`;
+  token: string;
   symbol: string;
   openedAt: number;
   plan: PickPlan;

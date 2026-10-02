@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { isTokenAddress } from "@/lib/address";
 import { getProvider } from "@/lib/data/provider";
 import { RobinhoodChainProvider } from "@/lib/data/robinhood";
 import { errorResponse, rateLimit } from "@/lib/http";
@@ -11,7 +12,7 @@ export const maxDuration = 60;
 const Query = z.object({
   token: z
     .string()
-    .regex(/^0x[0-9a-fA-F]{40}$/)
+    .refine(isTokenAddress)
     .optional(),
   minFollowers: z.coerce.number().int().min(0).max(1e9).default(0),
   limit: z.coerce.number().int().min(1).max(100).default(30),

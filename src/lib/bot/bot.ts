@@ -26,7 +26,7 @@ export interface Draft {
   createdAt: number;
   status: DraftStatus;
   repost: boolean;
-  token?: `0x${string}`;
+  token?: string;
   symbol?: string;
   score?: number;
   entryMcap?: number;
@@ -36,8 +36,8 @@ export interface Draft {
   error?: string;
 }
 
-const DRAFTS = "bot:drafts:v1";
-const CALLS = "bot:calls:v1";
+const DRAFTS = `bot:drafts:v2:${getConfig().SAT_CHAIN}`;
+const CALLS = `bot:calls:v2:${getConfig().SAT_CHAIN}`;
 const DAY_S = 24 * 3600;
 /** A call draft is stale after an hour; the market has moved on. */
 const CALL_DRAFT_TTL_S = 3600;

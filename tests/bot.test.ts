@@ -14,11 +14,11 @@ const launch = (over: Partial<Candidate> = {}): Candidate => ({
   launchedAt: NOW - 20 * 60,
   graduatedAt: NOW - 20 * 60,
   priceUsd: 0.00002,
-  mcapUsd: 20_000,
+  mcapUsd: 200_000,
   progressPct: 100,
-  vol30mUsd: 30_000,
-  net30mUsd: 4_000,
-  traders30m: 160,
+  vol30mUsd: 80_000,
+  net30mUsd: 10_000,
+  traders30m: 200,
   url: "https://www.geckoterminal.com/robinhood/pools/0xabc",
   launchpad: "Uniswap V4",
   external: true,
@@ -96,9 +96,9 @@ describe("bot posts", () => {
   });
 
   it("rejects writer output with invented numbers, links, mentions or promises", () => {
-    const base = `$ROO is cooking on Uniswap V4 at $20.0K mcap.\nCA: ${TOKEN}\nNFA`;
+    const base = `$ROO is cooking on Uniswap V4 at $200.0K mcap.\nCA: ${TOKEN}\nNFA`;
     expect(validCall(base, facts)).toBe(true);
-    expect(validCall(base.replace("$20.0K", "$90K"), facts)).toBe(false);
+    expect(validCall(base.replace("$200.0K", "$900K"), facts)).toBe(false);
     expect(validCall(`${base}\nhttps://sathood.xyz`, facts)).toBe(false);
     expect(validCall(`${base} @someone`, facts)).toBe(false);
     expect(validCall(`${base} guaranteed`, facts)).toBe(false);

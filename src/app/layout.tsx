@@ -14,11 +14,11 @@ const display = Unbounded({ subsets: ["latin"], weight: ["500", "700", "800"], v
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.SAT_SITE_URL || "https://sathood.xyz"),
-  title: "SAT — Your satellite over Robinhood Chain",
-  description: "SAT watches every trade, launch and whale on Robinhood Chain and tells you what matters first. Whale radar, launch safety scores, alerts and trading from your own wallet.",
+  title: "SAT — Your satellite over Solana",
+  description: "SAT watches every launch, pump and whale on Solana and tells you what matters first. Your own trading agent, X radar, launch alerts and exact exit plans.",
   openGraph: {
-    title: "SAT — Your satellite over Robinhood Chain",
-    description: "Whales, hot launches and every move on Robinhood Chain, spotted first. Live now.",
+    title: "SAT — Your satellite over Solana",
+    description: "Hot launches, whales and every move on Solana, spotted first. Live now.",
   },
   twitter: { card: "summary_large_image" },
 };

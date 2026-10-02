@@ -1,5 +1,7 @@
 import { getConfig } from "../config";
 import type { RobinhoodChainProvider } from "../data/robinhood";
+import { ADDRESS_IN_TEXT } from "../address";
+import { GT_NETWORK } from "../radar/chainwide";
 import { exploreUniverse } from "../radar/explore";
 import { getKv } from "../store/kv";
 import type { SocialSnapshot, TokenBuzz, XPost } from "./posts";
@@ -13,30 +15,42 @@ export { buzzLine, socialAlerts, type SocialSnapshot, type TokenBuzz, type XPost
  * nothing. Posts are kept for two days.
  */
 
-const STATE_KEY = "social:state:v1";
+const STATE_KEY = () => `social:state:v2:${getConfig().SAT_CHAIN}`;
 const KEEP_S = 48 * 3600;
 const MAX_POSTS = 400;
 /** Contract addresses searched per scan: the hottest launches plus SAT. */
 const WATCH_TOKENS = 10;
-const ECOSYSTEM = `("robinhood chain" OR #RobinhoodChain OR rhchain OR pons.family OR "on pons")`;
+const ECOSYSTEM: Record<string, string> = {
+  solana: `(pump.fun OR pumpfun OR pumpswap OR "solana memecoin" OR "sol memecoin" OR bonk.fun)`,
+  robinhood: `("robinhood chain" OR #RobinhoodChain OR rhchain OR pons.family OR "on pons")`,
+};
 
 interface State {
   posts: XPost[];
   scannedAt: number;
 }
 
-type Known = Map<string, { token: `0x${string}`; symbol: string }>;
+type Known = Map<string, { token: string; symbol: string }>;
 
-const ADDRESS = /0x[a-fA-F0-9]{40}/g;
+const ADDRESS = ADDRESS_IN_TEXT;
 const CASHTAG = /\$([A-Za-z][A-Za-z0-9]{1,14})\b/g;
 /** Tickers too common to map from a cashtag alone. */
-const GENERIC = new Set(["btc", "eth", "sol", "usd", "usdc", "usdt", "usdg", "bnb", "xrp", "hood", "nvda", "tsla"]);
+const GENERIC = new Set(["btc", "eth", "sol", "usd", "usdc", "usdt", "usdg", "bnb", "xrp", "hood", "nvda", "tsla", "jup", "bonk", "wif", "ray", "jto", "pump"]);
 
 /** Parse twitterapi.io's "Tue Dec 10 07:00:30 +0000 2024" into unix seconds. */
 const unix = (s?: string) => {
   const t = s ? Date.parse(s) : NaN;
   return Number.isFinite(t) ? Math.floor(t / 1000) : Math.floor(Date.now() / 1000);
 };
+
+/**
+ * Scam and phishing posts hide invisible characters and Cyrillic look-alike
+ * letters inside Latin words to dodge filters. Real callers do not.
+ */
+export function looksLikeSpam(text: string): boolean {
+  if (/[\u200B-\u200F\u2060-\u2064\uFEFF]/.test(text)) return true;
+  return /[A-Za-z][\u0400-\u04FF]|[\u0400-\u04FF][A-Za-z]/.test(text);
+}
 
 /** Which known tokens a tweet is about: by contract address, or by cashtag when the ticker is ours. */
 export function tokensIn(text: string, byAddress: Known, bySymbol: Known): XPost["tokens"] {
@@ -104,13 +118,16 @@ async function scan(provider: RobinhoodChainProvider, prev: State): Promise<Stat
     const sym = r.symbol.trim().toLowerCase();
     if (sym && !bySymbol.has(sym)) bySymbol.set(sym, entry);
   }
-  const sat = { token: cfg.SAT_TOKEN_ADDRESS, symbol: "SAT" };
-  byAddress.set(sat.token.toLowerCase(), sat);
-  bySymbol.set("sat", sat);
+  // $SAT lives on Robinhood Chain until it launches on Solana.
+  const sat = cfg.SAT_CHAIN === "robinhood" ? { token: cfg.SAT_TOKEN_ADDRESS as string, symbol: "SAT" } : null;
+  if (sat) {
+    byAddress.set(sat.token.toLowerCase(), sat);
+    bySymbol.set("sat", sat);
+  }
 
   const since = Math.max(prev.scannedAt, Math.floor(Date.now() / 1000) - 6 * 3600) - 30;
-  const watch = [sat.token, ...ranked.filter((r) => r.vol30mUsd > 0).slice(0, WATCH_TOKENS).map((r) => r.token)];
-  const queries = [`(${watch.map((a) => `"${a}"`).join(" OR ")}) since_time:${since}`, `${ECOSYSTEM} since_time:${since} -filter:retweets`];
+  const watch = [...(sat ? [sat.token] : []), ...ranked.filter((r) => r.vol30mUsd > 0).slice(0, WATCH_TOKENS).map((r) => r.token)];
+  const queries = [`(${watch.map((a) => `"${a}"`).join(" OR ")}) since_time:${since}`, `${ECOSYSTEM[GT_NETWORK()]} since_time:${since} -filter:retweets`];
 
   const seen = new Set(prev.posts.map((p) => p.id));
   const fresh: XPost[] = [];
@@ -122,6 +139,7 @@ async function scan(provider: RobinhoodChainProvider, prev: State): Promise<Stat
     for (const t of tweets) {
       if (!t.id || seen.has(t.id)) continue;
       seen.add(t.id);
+      if (looksLikeSpam(t.text ?? "")) continue;
       const tokens = tokensIn(t.text ?? "", byAddress, bySymbol);
       if (!tokens.length && (t.author?.followers ?? 0) < cfg.SOCIAL_ALERT_FOLLOWERS) continue;
       fresh.push(toPost(t, tokens));
@@ -141,16 +159,16 @@ let running: Promise<State> | null = null;
 export async function getSocial(provider: RobinhoodChainProvider, refresh = true): Promise<SocialSnapshot> {
   const cfg = getConfig();
   const kv = getKv();
-  let state = (await kv.get<State>(STATE_KEY).catch(() => null)) ?? { posts: [], scannedAt: 0 };
+  let state = (await kv.get<State>(STATE_KEY()).catch(() => null)) ?? { posts: [], scannedAt: 0 };
   const now = Math.floor(Date.now() / 1000);
   if (refresh && cfg.TWITTERAPI_IO_KEY && now - state.scannedAt >= cfg.SOCIAL_SCAN_SECONDS) {
     // Claim the scan first so parallel instances do not all hit the API.
     if (!running) {
       const claimed = { ...state, scannedAt: now };
-      await kv.set(STATE_KEY, claimed, KEEP_S * 1000).catch(() => undefined);
+      await kv.set(STATE_KEY(), claimed, KEEP_S * 1000).catch(() => undefined);
       running = scan(provider, state)
         .then(async (next) => {
-          await kv.set(STATE_KEY, next, KEEP_S * 1000);
+          await kv.set(STATE_KEY(), next, KEEP_S * 1000);
           return next;
         })
         .catch(() => claimed)
@@ -161,10 +179,11 @@ export async function getSocial(provider: RobinhoodChainProvider, refresh = true
     // Serve the last scan while the next one runs; only the very first scan is awaited.
     if (state.scannedAt === 0) state = await running;
   }
+  const posts = state.posts.filter((p) => !looksLikeSpam(p.text));
   return {
     enabled: Boolean(cfg.TWITTERAPI_IO_KEY),
-    posts: state.posts,
-    tokens: buzzOf(state.posts, now),
+    posts,
+    tokens: buzzOf(posts, now),
     scannedAt: state.scannedAt,
     budget: { used: await callsToday(), cap: cfg.SOCIAL_MAX_CALLS_PER_DAY },
   };

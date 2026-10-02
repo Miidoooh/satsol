@@ -6,7 +6,9 @@ import { recentCurveTrades, type RawCurveTrade } from "../data/ponsFlow";
 import { getPonsProfiles, type PonsSocials } from "../data/ponsProfile";
 import type { RobinhoodChainProvider } from "../data/robinhood";
 import { getTokenMeta } from "../data/tokenMeta";
-import { chainPools, type ChainPool } from "./chainwide";
+import { isEvmAddress } from "../address";
+import { getConfig } from "../config";
+import { chainPools, curveProgress, type ChainPool } from "./chainwide";
 import { flowByCurve } from "./trenches";
 import { unitsToNumber } from "./whales";
 
@@ -24,13 +26,13 @@ const BASE_TTL = 12 * 1000;
 export const EXPLORE_PAGE = 50;
 
 export interface ExploreRow {
-  token: `0x${string}`;
-  curve: `0x${string}` | null;
+  token: string;
+  curve: string | null;
   symbol: string;
   name: string;
   logoUrl?: string;
   socials?: PonsSocials;
-  deployer: `0x${string}` | null;
+  deployer: string | null;
   launchedAt: number | null;
   graduatedAt: number | null;
   quoteSymbol: string;
@@ -165,14 +167,14 @@ function chainRow(p: ChainPool): UniverseRow {
     logoUrl: p.logoUrl,
     deployer: null,
     launchedAt: p.launchedAt,
-    graduatedAt: p.launchedAt ?? 0,
+    graduatedAt: p.onCurve ? null : (p.launchedAt ?? 0),
     quoteSymbol: p.quoteSymbol,
     paySymbol: p.quoteSymbol || "ETH",
     payUsd: p.quoteUsd,
     priceUsd: p.priceUsd,
     mcapUsd: p.mcapUsd,
     raisedUsd: p.liquidityUsd,
-    progressPct: 100,
+    progressPct: p.onCurve ? curveProgress(p.mcapUsd) : 100,
     vol30mUsd: p.vol30mUsd,
     net30mUsd: p.net30mUsd,
     txns30m: p.buys30m + p.sells30m,
@@ -191,11 +193,51 @@ async function withChain(b: Base): Promise<{ pons: UniverseRow[]; chain: Univers
   return { pons, chain: pools.filter((p) => !known.has(p.token)).map(chainRow) };
 }
 
-/** Every launch SAT sees: Pons curves and graduates, and pools from every other launchpad on the chain. */
+const onSolana = () => getConfig().SAT_CHAIN === "solana";
+const evmOnly = (tokens: string[]) => tokens.filter(isEvmAddress) as `0x${string}`[];
+
+/** Every launch SAT sees: on Solana every launchpad and DEX; on Robinhood Chain, Pons plus every other venue. */
 export async function exploreUniverse(provider: RobinhoodChainProvider): Promise<{ rows: UniverseRow[]; scanned: number; updatedAt: number }> {
+  if (onSolana()) {
+    const { pools, updatedAt } = await chainPools();
+    return { rows: pools.map(chainRow), scanned: pools.length, updatedAt };
+  }
   const b = await base(provider);
   const { pons, chain } = await withChain(b);
   return { rows: [...pons, ...chain], scanned: pons.length + chain.length, updatedAt: b.updatedAt };
+}
+
+interface Tables {
+  pools: Record<ExploreTab, UniverseRow[]>;
+  scanned: number;
+  updatedAt: number;
+}
+
+/** The rows behind each Explore tab for the chain SAT watches. */
+async function tables(provider: RobinhoodChainProvider): Promise<Tables> {
+  if (onSolana()) {
+    const { pools, updatedAt } = await chainPools();
+    const rows = pools.map(chainRow);
+    const now = Math.floor(Date.now() / 1000);
+    const curve = rows.filter((r) => r.graduatedAt === null);
+    return {
+      pools: {
+        all: rows,
+        new: rows,
+        trending: rows.filter((r) => r.txns30m > 0),
+        almost: curve.filter((r) => r.progressPct >= 50),
+        graduated: rows.filter((r) => r.graduatedAt !== null && r.launchedAt !== null && now - r.launchedAt <= 24 * 3600),
+      },
+      scanned: rows.length,
+      updatedAt,
+    };
+  }
+  const b = await base(provider);
+  const { chain } = await withChain(b);
+  const almost = b.curves.filter((r) => r.progressPct < 100 && r.raisedUsd > 0);
+  const trending = b.curves.filter((r) => r.txns30m > 0);
+  const all = [...trending.map((r) => ({ ...r, launchpad: "Pons" })), ...b.graduated.map((r) => ({ ...r, launchpad: "Pons" })), ...chain];
+  return { pools: { all, new: b.curves, trending, almost, graduated: b.graduated }, scanned: b.curves.length + chain.length, updatedAt: b.updatedAt };
 }
 
 const DEFAULT_SORT: Record<ExploreTab, ExploreSort> = { all: "volume", new: "age", trending: "volume", almost: "progress", graduated: "age" };
@@ -219,12 +261,8 @@ function sortKey(row: UniverseRow, sort: ExploreSort, tab: ExploreTab): number {
 
 /** Filter, sort and page the table, then attach logos and socials to the rows shown. */
 export async function explore(provider: RobinhoodChainProvider, query: ExploreQuery): Promise<ExplorePage> {
-  const b = await base(provider);
-  const { chain } = await withChain(b);
-  const almost = b.curves.filter((r) => r.progressPct < 100 && r.raisedUsd > 0);
-  const trending = b.curves.filter((r) => r.txns30m > 0);
-  const all = [...trending.map((r) => ({ ...r, launchpad: "Pons" })), ...b.graduated.map((r) => ({ ...r, launchpad: "Pons" })), ...chain];
-  const pools: Record<ExploreTab, UniverseRow[]> = { all, new: b.curves, trending, almost, graduated: b.graduated };
+  const t = await tables(provider);
+  const pools = t.pools;
 
   const q = query.q?.trim().toLowerCase().replace(/^\$/, "");
   const sort = query.sort ?? DEFAULT_SORT[query.tab];
@@ -242,24 +280,24 @@ export async function explore(provider: RobinhoodChainProvider, query: ExploreQu
   let candidates = rows;
   if (query.socials) {
     const window = rows.slice(0, offset + limit * 4);
-    const profiles = await getPonsProfiles(window.map((r) => r.token)).catch(() => new Map());
+    const profiles = await getPonsProfiles(evmOnly(window.map((r) => r.token))).catch(() => new Map());
     candidates = window.filter((r) => {
       const s = profiles.get(r.token.toLowerCase())?.socials;
       return !!s && Object.values(s).some(Boolean);
     });
   }
   const page = candidates.slice(offset, offset + limit);
-  const profiles = await getPonsProfiles(page.filter((r) => !r.external).map((r) => r.token)).catch(() => new Map());
+  const profiles = await getPonsProfiles(evmOnly(page.filter((r) => !r.external).map((r) => r.token))).catch(() => new Map());
 
   return {
     tab: query.tab,
-    counts: { all: all.length, new: b.curves.length, trending: trending.length, almost: almost.length, graduated: b.graduated.length },
+    counts: { all: pools.all.length, new: pools.new.length, trending: pools.trending.length, almost: pools.almost.length, graduated: pools.graduated.length },
     total: query.socials ? candidates.length : rows.length,
     rows: page.map((r) => {
       const p = profiles.get(r.token.toLowerCase());
       return { ...r, logoUrl: p?.logoUrl ?? r.logoUrl ?? undefined, socials: p?.socials };
     }),
-    scanned: b.curves.length + chain.length,
-    updatedAt: b.updatedAt,
+    scanned: t.scanned,
+    updatedAt: t.updatedAt,
   };
 }

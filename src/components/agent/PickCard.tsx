@@ -1,5 +1,6 @@
 "use client";
 
+import { jupiterUrl, ON_SOLANA } from "@/lib/chainMode";
 import { fmtUsd } from "@/lib/format";
 import type { Pick } from "@/lib/agent/strategy";
 import { SocialLinks, TokenAvatar } from "../TokenAvatar";
@@ -86,8 +87,14 @@ export default function PickCard({ pick: p, rank, buy, onBuy, onOpen }: Props) {
 
       <footer className="ag-pick-foot">
         {p.external ? (
-          <a className="btn primary ag-buy" href={p.url} target="_blank" rel="noreferrer noopener" title={`SAT cannot route ${p.launchpad} trades yet`}>
-            Trade on GeckoTerminal ↗
+          <a
+            className="btn primary ag-buy"
+            href={ON_SOLANA ? jupiterUrl(p.token) : p.url}
+            target="_blank"
+            rel="noreferrer noopener"
+            title={ON_SOLANA ? "Opens Jupiter with this token selected" : `SAT cannot route ${p.launchpad} trades yet`}
+          >
+            {ON_SOLANA ? `Buy on Jupiter ↗` : "Trade on GeckoTerminal ↗"}
           </a>
         ) : (
           <button className="btn primary ag-buy" disabled={buy?.busy} onClick={() => onBuy(p)}>
