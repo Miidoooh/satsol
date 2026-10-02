@@ -4,6 +4,7 @@ import { TrendingTape } from "@/components/brand/LiveWidgets";
 import OrbitHero from "@/components/brand/OrbitHero";
 import Satellite from "@/components/brand/Satellite";
 import Logo from "@/components/Logo";
+import { SHOW_SAT_TOKEN } from "@/lib/chainMode";
 import "./live.css";
 
 export default function Landing() {
@@ -18,7 +19,7 @@ export default function Landing() {
           <Link href="/app?view=explore">Explore</Link>
           <Link href="/app?view=radar">Whales</Link>
           <Link href="/app?view=agent">Your Agent</Link>
-          <Link href="#sat">$SAT</Link>
+          {SHOW_SAT_TOKEN && <Link href="#sat">$SAT</Link>}
         </nav>
         <div className="spacer" />
         <a className="btn sm icon-only" href="https://x.com/sat_rhood" target="_blank" rel="noreferrer noopener" aria-label="SAT on X" title="@sat_rhood on X">
@@ -45,16 +46,22 @@ export default function Landing() {
             <Link className="sx-btn primary" href="/app">
               Open SAT →
             </Link>
-            <Link className="sx-btn ghost" href="#sat">
-              Get $SAT
-            </Link>
+            {SHOW_SAT_TOKEN ? (
+              <Link className="sx-btn ghost" href="#sat">
+                Get $SAT
+              </Link>
+            ) : (
+              <Link className="sx-btn ghost" href="/app?view=agent">
+                Meet your agent
+              </Link>
+            )}
           </div>
         </div>
       </section>
 
       <TrendingTape />
       <Chapters />
-      <Orbits />
+      {SHOW_SAT_TOKEN && <Orbits />}
 
       <div className="sx-wrap">
         <Reveal>

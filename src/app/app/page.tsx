@@ -29,7 +29,7 @@ import { useWallet, WalletProvider, type ChainInfo } from "@/components/wallet";
 import WalletTracker from "@/components/WalletTracker";
 import WhaleRadar from "@/components/WhaleRadar";
 import { isSolanaAddress, isTokenAddress } from "@/lib/address";
-import { CHAIN_NAME, ON_SOLANA, tokenChartUrl } from "@/lib/chainMode";
+import { CHAIN_NAME, ON_SOLANA, SHOW_SAT_TOKEN } from "@/lib/chainMode";
 import { ponsTokenUrl, ROBINHOOD_MAINNET } from "@/lib/chain/constants";
 import { fmtAge, fmtNum, fmtPct, fmtPrice, fmtUsd } from "@/lib/format";
 import type { Candle, ChartAnalysis, ProviderCapabilities, Timeframe, TokenMarket } from "@/lib/types";
@@ -84,7 +84,7 @@ const SOLANA_LABELS: Partial<Record<View, { label?: string; hint: string }>> = {
   trenches: { label: "Trenches", hint: "New, graduating and hot launches on Solana" },
   portfolio: { hint: "Your Solana holdings, valued live" },
 };
-const SHOWN = ON_SOLANA ? VIEWS.filter((v) => v.id !== "wallets").map((v) => ({ ...v, ...SOLANA_LABELS[v.id] })) : VIEWS;
+const SHOWN = ON_SOLANA ? VIEWS.filter((v) => v.id !== "wallets" && (v.id !== "sat" || SHOW_SAT_TOKEN)).map((v) => ({ ...v, ...SOLANA_LABELS[v.id] })) : VIEWS;
 const isView = (v: string | null): v is View => SHOWN.some((x) => x.id === v);
 
 /** The command palette, inside the wallet provider so it can offer wallet actions. */
@@ -96,7 +96,7 @@ function PaletteHost(props: { tokens: TokenMarket[]; officialToken?: string; onO
       ...(wallet.address
         ? [{ label: "My portfolio", hint: "Holdings and PnL for the connected wallet", icon: <IconPie />, run: () => props.onView("portfolio") }]
         : [{ label: "Connect wallet", hint: "MetaMask, Rabby, Coinbase and more", icon: <IconWallet />, run: () => void wallet.connect() }]),
-      { label: "Buy SAT", hint: "Open the SAT pool on Pons", icon: <IconDiamond />, run: () => window.open(sat?.buyUrl ?? "/app?view=sat", "_blank", "noopener") },
+      ...(SHOW_SAT_TOKEN ? [{ label: "Buy SAT", hint: "Open the SAT pool", icon: <IconDiamond />, run: () => window.open(sat?.buyUrl ?? "/app?view=sat", "_blank", "noopener") }] : []),
       { label: "Daily flow report", hint: "The last 24h on Robinhood Chain", icon: <IconReport />, run: () => window.open("/report", "_blank", "noopener") },
       { label: "Trending launches", hint: "Most traded Pons curves right now", icon: <IconBolt />, run: () => props.onView("explore") },
     ],
@@ -311,7 +311,7 @@ export default function Terminal() {
           <span>Search</span>
           <kbd>⌘K</kbd>
         </button>
-        <SatPill onOpen={() => switchView("sat")} />
+        {SHOW_SAT_TOKEN && <SatPill onOpen={() => switchView("sat")} />}
         <AlertsCenter
           onOpenToken={(token, url) => void openToken(token, url)}
           onOpenWallet={openWallet}
@@ -369,7 +369,7 @@ export default function Terminal() {
       {view === "token" && solMint && <SolTokenView mint={solMint} onBack={() => switchView("explore")} />}
       {view === "agent" && <AgentView agentEnabled={market?.agentEnabled ?? false} onOpenToken={(token) => void openToken(token)} />}
       {!ON_SOLANA && view === "portfolio" && <PortfolioView explorer={explorer} onOpenToken={(token) => void openToken(token)} />}
-      {view === "sat" && <SatView explorer={explorer} feeWallet={market?.execution.feeRecipient ?? null} />}
+      {SHOW_SAT_TOKEN && view === "sat" && <SatView explorer={explorer} feeWallet={market?.execution.feeRecipient ?? null} />}
 
       <div className="grid" hidden={ON_SOLANA || view !== "terminal"}>
         <section className="col markets">

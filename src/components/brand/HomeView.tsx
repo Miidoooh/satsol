@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ON_SOLANA } from "@/lib/chainMode";
+import { ON_SOLANA, SHOW_SAT_TOKEN } from "@/lib/chainMode";
 import { fmtPct, fmtPrice, fmtUsd } from "@/lib/format";
 import { useSat } from "../sat";
 import { LiveLaunches, LiveMarkets, LiveScan, LiveSocial, LiveTrending, LiveWhales } from "./LiveWidgets";
@@ -62,7 +62,7 @@ export default function HomeView({ onOpenToken, onExplore, onRadar, onAgent }: {
             Open your agent →
           </button>
         </div>
-        {(
+        {SHOW_SAT_TOKEN && (
           <div className="sx-card">
             <h3>
               <Satellite mood="pump" size={34} orbit={false} /> $SAT

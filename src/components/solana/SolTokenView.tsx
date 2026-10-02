@@ -2,18 +2,23 @@
 
 import { useState } from "react";
 import { fmtPct, fmtPrice, fmtUsd } from "@/lib/format";
+import type { Candle } from "@/lib/types";
 import type { SolTokenInfo } from "@/app/api/sol/token/route";
 import { TokenAvatar } from "../TokenAvatar";
 import { usePoll } from "../usePoll";
+import ChartPanel from "../ChartPanel";
 import SolTradePanel from "./SolTradePanel";
 
+const TIMEFRAMES = ["1m", "5m", "15m", "1h", "4h", "1d"] as const;
 const money = (n: number | null | undefined) => (n ? fmtUsd(n, { compact: true }) : "—");
 
 /** A Solana token: live chart, the numbers that matter, and a Jupiter trade panel. */
 export default function SolTokenView({ mint, onBack }: { mint: string; onBack: () => void }) {
   const { data, error } = usePoll<SolTokenInfo>(`/api/sol/token?mint=${mint}`, 15_000);
   const [copied, setCopied] = useState(false);
+  const [tf, setTf] = useState<(typeof TIMEFRAMES)[number]>("5m");
   const p = data?.pool;
+  const { data: candles } = usePoll<{ candles: Candle[] }>(p ? `/api/sol/candles?pool=${p.address}&tf=${tf}` : "", tf === "1m" ? 20_000 : 45_000);
   const h1 = p?.txns.h1;
   const ch = (k: "m5" | "h1" | "h6" | "h24") => p?.change[k] ?? null;
 
@@ -85,12 +90,21 @@ export default function SolTokenView({ mint, onBack }: { mint: string; onBack: (
       </section>
 
       <div className="sol-grid">
-        <div className="sol-chart">
-          {data?.chartUrl ? (
-            <iframe title={`${data.symbol} chart`} src={data.chartUrl} allow="clipboard-write" />
-          ) : (
-            <div className="dim live-empty is-loading">Loading the chart…</div>
-          )}
+        <div className="sol-chart-wrap">
+          <div className="sol-tfs">
+            {TIMEFRAMES.map((t) => (
+              <button key={t} className={`chip ${tf === t ? "on" : ""}`} onClick={() => setTf(t)}>
+                {t}
+              </button>
+            ))}
+          </div>
+          <div className="sol-chart">
+            {candles?.candles.length ? (
+              <ChartPanel candles={candles.candles} analysis={null} />
+            ) : (
+              <div className="dim live-empty is-loading">{p ? "Loading the chart…" : "Finding this token's pool…"}</div>
+            )}
+          </div>
         </div>
         <aside>
           <SolTradePanel mint={mint} symbol={data?.symbol || "token"} />
