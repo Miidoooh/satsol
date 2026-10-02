@@ -181,7 +181,8 @@ function chainRow(p: ChainPool): UniverseRow {
     traders30m: p.traders30m,
     url: p.url,
     launchpad: p.launchpad,
-    external: true,
+    // On Solana every pool trades in-app through Jupiter.
+    external: !onSolana(),
   };
 }
 

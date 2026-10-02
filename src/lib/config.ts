@@ -13,6 +13,11 @@ const EnvSchema = z.object({
   SAT_CHAIN: z.enum(["solana", "robinhood"]).default(process.env.NEXT_PUBLIC_SAT_CHAIN === "robinhood" ? "robinhood" : "solana"),
   /** Helius (Solana RPC and data). Needed for wallets, safety and whale data on Solana. */
   HELIUS_API_KEY: z.preprocess(emptyToUndef, z.string().optional()),
+  /** Solana trading guardrails: max SOL per trade, slippage cap and the default, and the price-impact cap. */
+  SOL_MAX_TRADE_SOL: z.coerce.number().positive().default(2),
+  SOL_MAX_SLIPPAGE_BPS: z.coerce.number().int().min(10).max(5000).default(1500),
+  SOL_DEFAULT_SLIPPAGE_BPS: z.coerce.number().int().min(10).max(5000).default(300),
+  SOL_MAX_PRICE_IMPACT_PCT: z.coerce.number().positive().max(100).default(15),
 
   OPENAI_API_KEY: z.preprocess(emptyToUndef, z.string().optional()),
   OPENAI_MODEL: z.string().default("gpt-4o"),

@@ -1,5 +1,7 @@
 "use client";
 
+import { useWallet as useSolWallet } from "@solana/wallet-adapter-react";
+import { useWalletModal } from "@solana/wallet-adapter-react-ui";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { jupiterUrl, ON_SOLANA } from "@/lib/chainMode";
 import { fmtAgo, fmtPrice, fmtUsd } from "@/lib/format";
@@ -7,6 +9,7 @@ import type { ExplorePage, ExploreRow, ExploreSort, ExploreTab } from "@/lib/rad
 import { setMood } from "./brand/mood";
 import { Flash } from "./Flash";
 import { SocialLinks, TokenAvatar } from "./TokenAvatar";
+import { executeSolTrade } from "./solana/solTrade";
 import { executeTrade } from "./tradeExec";
 import { useWallet } from "./wallet";
 
@@ -123,6 +126,8 @@ export default function ExploreView({ onOpenToken }: Props) {
   const open = (r: ExploreRow) => (r.external ? window.open(r.url, "_blank", "noopener") : onOpenToken(r.token, r.url));
 
   const wallet = useWallet();
+  const solWallet = useSolWallet();
+  const { setVisible: openSolModal } = useWalletModal();
   const [quickUsd, setQuickUsd] = useState(10);
   const [buys, setBuys] = useState<Record<string, QuickStatus>>({});
   useEffect(() => {
@@ -147,7 +152,17 @@ export default function ExploreView({ onOpenToken }: Props) {
       });
     set({ text: "Preparing…", busy: true });
     try {
-      const built = await executeTrade({ side: "buy", token: r.token, amount }, wallet, (text, href) => set({ text, href, busy: true }));
+      if (ON_SOLANA) {
+        if (!solWallet.publicKey) {
+          set(null);
+          return openSolModal(true);
+        }
+        await executeSolTrade({ side: "buy", mint: r.token, usd: quickUsd }, solWallet, (text, href) => set({ text, href, busy: true }));
+        set({ text: `Bought $${quickUsd} of ${r.symbol}`, tone: "ok" });
+        setMood("pump");
+        return;
+      }
+      const built = await executeTrade({ side: "buy", token: r.token as `0x${string}`, amount }, wallet, (text, href) => set({ text, href, busy: true }));
       set({ text: `Bought ≥ ${built.minOut}`, tone: "ok" });
       setMood("pump");
     } catch (e) {
@@ -175,7 +190,7 @@ export default function ExploreView({ onOpenToken }: Props) {
       </div>
 
       <div className="ex-filters">
-        <input className="ex-search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Filter by ticker, name or 0x address…" />
+        <input className="ex-search" value={q} onChange={(e) => setQ(e.target.value)} placeholder={ON_SOLANA ? "Filter by ticker, name, launchpad or contract address…" : "Filter by ticker, name or 0x address…"} />
         <div className="ex-group">
           <span className="dim">MCap ≥</span>
           {MCAPS.map((v) => (

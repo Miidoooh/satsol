@@ -126,8 +126,6 @@ export default function AlertsCenter({ onOpenToken, onOpenWallet, onOpenSat, age
   useEffect(() => {
     if (!settings.enabled) return;
     let alive = true;
-    // Whale, curve and rule alerts read Robinhood Chain feeds; on Solana only the X radar runs for now.
-    if (ON_SOLANA) return;
     // Restarting (new thresholds, follows or rules) begins from a clean slate so old trades don't all fire at once.
     let first = true;
     const seen = new Set<string>();

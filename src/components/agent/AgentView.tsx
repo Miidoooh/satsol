@@ -1,12 +1,16 @@
 "use client";
 
+import { useWallet as useSolWallet } from "@solana/wallet-adapter-react";
+import { useWalletModal } from "@solana/wallet-adapter-react-ui";
 import { useEffect, useRef, useState } from "react";
+import { ON_SOLANA } from "@/lib/chainMode";
 import type { PicksResult } from "@/lib/agent/picks";
 import type { Pick } from "@/lib/agent/strategy";
 import type { TrackStats } from "@/lib/agent/track";
 import { fmtUsd } from "@/lib/format";
 import Satellite from "../brand/Satellite";
 import { setMood } from "../brand/mood";
+import { executeSolTrade } from "../solana/solTrade";
 import { executeTrade } from "../tradeExec";
 import { usePoll } from "../usePoll";
 import { useWallet } from "../wallet";
@@ -47,6 +51,8 @@ export default function AgentView({ agentEnabled, onOpenToken }: Props) {
   const { link } = useTelegramLink();
   const tgLinked = !!link?.token;
   const wallet = useWallet();
+  const solWallet = useSolWallet();
+  const { setVisible: openSolModal } = useWalletModal();
   const [editing, setEditing] = useState(false);
   const [data, setData] = useState<(PicksResult & { track: TrackStats | null }) | null>(null);
   const [error, setError] = useState("");
@@ -92,13 +98,16 @@ export default function AgentView({ agentEnabled, onOpenToken }: Props) {
 
   async function buy(p: Pick) {
     const set = (s: BuyState) => setBuys((b) => ({ ...b, [p.token]: s }));
-    if (!p.payUsd) return set({ text: "No price for this token's pair right now.", tone: "bad" });
-    const amount = Number((p.plan.buyUsd / p.payUsd).toPrecision(3));
+    if (ON_SOLANA && !solWallet.publicKey) return openSolModal(true);
+    if (!ON_SOLANA && !p.payUsd) return set({ text: "No price for this token's pair right now.", tone: "bad" });
     set({ text: "Preparing…", busy: true });
     try {
-      const built = await executeTrade({ side: "buy", token: p.token, amount }, wallet, (text, href) => set({ text, href, busy: true }));
+      const log = (text: string, href?: string) => set({ text, href, busy: true });
+      const done = ON_SOLANA
+        ? (await executeSolTrade({ side: "buy", mint: p.token, usd: p.plan.buyUsd }, solWallet, log), `$${p.plan.buyUsd} of ${p.symbol}`)
+        : `≥ ${(await executeTrade({ side: "buy", token: p.token as `0x${string}`, amount: Number((p.plan.buyUsd / p.payUsd).toPrecision(3)) }, wallet, log)).minOut}`;
       open({ token: p.token, symbol: p.symbol, openedAt: Math.floor(Date.now() / 1000), plan: p.plan, hit: [], peakMcap: p.mcapUsd });
-      set({ text: `Bought ≥ ${built.minOut}. Tracking your plan →`, tone: "ok" });
+      set({ text: `Bought ${done}. Tracking your plan →`, tone: "ok" });
       setMood("pump");
     } catch (e) {
       const msg = (e as Error).message;

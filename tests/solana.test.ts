@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { isSolanaAddress, isTokenAddress, sameAddress } from "@/lib/address";
 import { curveProgress, toChainPool } from "@/lib/radar/chainwide";
+import { probeImpact } from "@/lib/solana/jupiter";
 import { looksLikeSpam, tokensIn } from "@/lib/social/radar";
 
 const MINT = "7GCihgDB8fe6KNjn2MYtkzZcRjQy3t9GHdC8uHYmW2hr";
@@ -40,6 +41,13 @@ describe("Solana addresses", () => {
     expect(looksLikeSpam("They just op\u0435ned \u0430 new pool")).toBe(true);
     expect(looksLikeSpam("$CATE just graduated, 400 holders, CA below")).toBe(false);
     expect(looksLikeSpam("Привет, это русский пост")).toBe(false);
+  });
+
+  it("measures price impact against a tiny probe trade", () => {
+    // The probe gets 100 tokens per SOL; the real size gets 95 per SOL: 5% impact.
+    expect(probeImpact(1_000_000_000n, 95_000_000n, 10_000_000n, 1_000_000n)).toBeCloseTo(5, 6);
+    expect(probeImpact(1_000n, 1_000n, 10n, 10n)).toBe(0);
+    expect(probeImpact(1_000n, 1_000n, 10n, 0n)).toBeNull();
   });
 
   it("finds Solana contract addresses in tweets", () => {

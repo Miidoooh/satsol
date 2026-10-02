@@ -1,0 +1,222 @@
+/* ---------- Solana token page and trade panel ---------- */
+.sol-token {
+  overflow-y: auto;
+  padding: 20px 24px 70px;
+  background: var(--space-glow), var(--bg);
+}
+.sol-token > * {
+  width: 100%;
+  max-width: 1320px;
+  margin-left: auto;
+  margin-right: auto;
+}
+.sol-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+.sol-id h1 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 800;
+}
+.sol-id h1 .dim {
+  font-family: var(--font-sans, inherit);
+  font-size: 14px;
+  font-weight: 500;
+}
+.sol-id {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+.sol-ca {
+  padding: 2px 8px;
+  border: 1px solid var(--hairline-strong);
+  border-radius: 8px;
+  background: rgba(7, 10, 20, 0.6);
+  color: #c8d0ee;
+  font-size: 12px;
+  cursor: pointer;
+}
+.sol-stats {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.sol-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  gap: 16px;
+  align-items: start;
+}
+.sol-chart {
+  overflow: hidden;
+  height: 560px;
+  border-radius: 20px;
+  border: 1px solid var(--hairline-strong);
+  background: #0b0f1e;
+}
+.sol-chart iframe {
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+.sol-trade {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+  border-radius: 20px;
+  border: 1px solid var(--hairline-strong);
+  background: linear-gradient(180deg, rgba(17, 26, 48, 0.95), rgba(12, 17, 33, 0.95));
+}
+.sol-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+.sol-tabs button {
+  height: 38px;
+  border: 1px solid var(--hairline-strong);
+  border-radius: 12px;
+  background: transparent;
+  color: #c8d0ee;
+  font-weight: 800;
+  cursor: pointer;
+}
+.sol-tabs .on.buy {
+  color: #0a0f00;
+  background: var(--accent);
+  border-color: transparent;
+}
+.sol-tabs .on.sell {
+  color: #fff;
+  background: #e5484d;
+  border-color: transparent;
+}
+.sol-label {
+  margin-top: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #8d93b8;
+}
+.sol-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.sol-input {
+  height: 38px;
+  padding: 0 12px;
+  border-radius: 12px;
+  border: 1px solid var(--hairline-strong);
+  background: rgba(7, 10, 20, 0.6);
+  color: inherit;
+  font: inherit;
+  font-size: 15px;
+}
+.sol-quote {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-top: 6px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(160, 170, 255, 0.05);
+  font-size: 13px;
+}
+.sol-quote .dim.mono {
+  font-size: 11.5px;
+}
+.sol-warn {
+  font-size: 12px;
+  color: #ffb020;
+}
+.sol-go {
+  height: 46px;
+  margin-top: 6px;
+  font-size: 15px;
+  font-weight: 800;
+}
+.sol-go.sell {
+  color: #fff;
+  background: #e5484d;
+}
+.sol-bal {
+  font-size: 12px;
+  text-align: center;
+}
+.sol-log {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 12.5px;
+  color: #c8d0ee;
+}
+.sol-log .ok {
+  color: var(--accent);
+}
+.sol-log .bad {
+  color: #ff6b6b;
+}
+.sol-log a {
+  color: inherit;
+  text-decoration: underline;
+}
+.sol-fine {
+  margin: 4px 0 0;
+  font-size: 11px;
+  text-align: center;
+}
+
+/* Wallet button, matched to the brand. */
+.wallet-adapter-button.wallet-adapter-button-trigger.sol-connect,
+.sol-connect.wallet-adapter-button {
+  height: 34px;
+  padding: 0 14px;
+  border-radius: 10px;
+  background: var(--accent);
+  color: #0a0f00;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 34px;
+}
+.wallet-adapter-button.wallet-adapter-button-trigger.sol-connect:not([disabled]):hover,
+.sol-connect.wallet-adapter-button:not([disabled]):hover {
+  background: var(--accent);
+  filter: brightness(1.08);
+}
+.sol-connect .wallet-adapter-button-start-icon {
+  width: 18px;
+  height: 18px;
+  margin-right: 8px;
+}
+
+@media (max-width: 1000px) {
+  .sol-stats {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .sol-grid {
+    grid-template-columns: 1fr;
+  }
+  .sol-chart {
+    height: 420px;
+  }
+}
+@media (max-width: 600px) {
+  .sol-token {
+    padding: 12px 10px 90px;
+  }
+  .sol-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

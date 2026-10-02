@@ -1,10 +1,14 @@
 "use client";
 
+import { useWallet as useSolWallet } from "@solana/wallet-adapter-react";
+import { useWalletModal } from "@solana/wallet-adapter-react-ui";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { ON_SOLANA } from "@/lib/chainMode";
 import { erc20Abi, formatUnits } from "viem";
 import { checkExit, type ExitSignal } from "@/lib/agent/strategy";
 import { fmtUsd } from "@/lib/format";
 import { setMood } from "../brand/mood";
+import { executeSolTrade } from "../solana/solTrade";
 import { executeTrade } from "../tradeExec";
 import { useWallet } from "../wallet";
 import { usePositions, type StoredPosition } from "./agentStore";
@@ -18,6 +22,8 @@ type Marks = Record<string, { mcapUsd: number; priceUsd: number }>;
 export default function Positions({ onOpen }: { onOpen: (token: string) => void }) {
   const { positions, update, remove } = usePositions();
   const wallet = useWallet();
+  const solWallet = useSolWallet();
+  const { setVisible: openSolModal } = useWalletModal();
   const open = useMemo(() => positions.filter((p) => !p.closed), [positions]);
   const [marks, setMarks] = useState<Marks>({});
   const [status, setStatus] = useState<Record<string, { text: string; tone?: "ok" | "bad"; busy?: boolean }>>({});
@@ -68,6 +74,17 @@ export default function Positions({ onOpen }: { onOpen: (token: string) => void 
   async function sell(p: StoredPosition, s: ExitSignal) {
     const set = (v: { text: string; tone?: "ok" | "bad"; busy?: boolean }) => setStatus((x) => ({ ...x, [p.token]: v }));
     try {
+      if (ON_SOLANA) {
+        if (!solWallet.publicKey) return openSolModal(true);
+        const share = s.kind === "take-profit" ? Math.min(1, s.sellPct / remainingPct(p)) : 1;
+        const pct = Math.max(1, Math.min(100, Math.round(share * 100)));
+        await executeSolTrade({ side: "sell", mint: p.token, pct }, solWallet, (text) => set({ text, busy: true }));
+        if (s.kind === "take-profit" && s.target !== undefined && share < 1) update(p.token, { hit: [...p.hit, s.target] });
+        else update(p.token, { closed: true, hit: p.plan.targets.map((_, i) => i) });
+        set({ text: `Sold ${pct}% of your ${p.symbol}.`, tone: "ok" });
+        setMood("pump");
+        return;
+      }
       const account = wallet.address ?? (await wallet.connect());
       if (!account) throw new Error("Connect a wallet to sell.");
       set({ text: "Reading your balance…", busy: true });

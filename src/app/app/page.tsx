@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import AgentChat from "@/components/AgentChat";
 import AgentView from "@/components/agent/AgentView";
+import { SolanaWalletProvider } from "@/components/solana/SolanaWallet";
+import SolTokenView from "@/components/solana/SolTokenView";
 import AlertsCenter from "@/components/AlertsCenter";
 import ChartPanel from "@/components/ChartPanel";
 import ConnectButton from "@/components/ConnectButton";
@@ -25,7 +27,7 @@ import TradePanel from "@/components/TradePanel";
 import { useWallet, WalletProvider, type ChainInfo } from "@/components/wallet";
 import WalletTracker from "@/components/WalletTracker";
 import WhaleRadar from "@/components/WhaleRadar";
-import { isTokenAddress } from "@/lib/address";
+import { isSolanaAddress, isTokenAddress } from "@/lib/address";
 import { CHAIN_NAME, ON_SOLANA, tokenChartUrl } from "@/lib/chainMode";
 import { ponsTokenUrl, ROBINHOOD_MAINNET } from "@/lib/chain/constants";
 import { fmtAge, fmtNum, fmtPct, fmtPrice, fmtUsd } from "@/lib/format";
@@ -35,6 +37,7 @@ import "../smart.css";
 import "../v2.css";
 import "../v3.css";
 import "../agent.css";
+import "../sol.css";
 
 interface MarketResponse {
   source: string;
@@ -57,7 +60,7 @@ const ALL_TF: Timeframe[] = ["5m", "15m", "1h", "4h", "1d"];
 const PONS_TF: Timeframe[] = ["5m", "15m", "1h", "4h"];
 const isAddress = isTokenAddress;
 
-type View = "home" | "terminal" | "explore" | "agent" | "radar" | "trenches" | "wallets" | "portfolio" | "sat";
+type View = "home" | "terminal" | "explore" | "agent" | "radar" | "trenches" | "wallets" | "portfolio" | "sat" | "token";
 const VIEWS: { id: View; label: string; short: string; icon: React.ReactNode; hint: string; isNew?: boolean; mobile?: boolean }[] = [
   { id: "home", label: "Home", short: "Home", icon: <IconHome />, hint: "What matters right now, in plain words", mobile: true },
   { id: "terminal", label: "Terminal", short: "Trade", icon: <IconTerminal />, hint: "Charts, analysis, trade and the agent", mobile: true },
@@ -70,9 +73,9 @@ const VIEWS: { id: View; label: string; short: string; icon: React.ReactNode; hi
   { id: "sat", label: "Hold SAT", short: "SAT", icon: <IconDiamond />, hint: "SAT token, tiers and perks" },
 ];
 const MODE_KEY = "sat:mode";
-/** Views that work on Solana today; the rest return as they are rebuilt for it. */
-const SOLANA_VIEWS = new Set<View>(["home", "explore", "agent"]);
-const SHOWN = ON_SOLANA ? VIEWS.filter((v) => SOLANA_VIEWS.has(v.id)) : VIEWS;
+
+
+const SHOWN = VIEWS;
 const isView = (v: string | null): v is View => SHOWN.some((x) => x.id === v);
 
 /** The command palette, inside the wallet provider so it can offer wallet actions. */
@@ -103,7 +106,7 @@ function PaletteHost(props: { tokens: TokenMarket[]; officialToken?: string; onO
 }
 
 export default function Terminal() {
-  const [view, setView] = useState<View>(ON_SOLANA ? "home" : "terminal");
+  const [view, setView] = useState<View>("terminal");
   const [wallet, setWallet] = useState("");
   const [market, setMarket] = useState<MarketResponse | null>(null);
   /** Pons launches opened from a live view that are not in the market list. */
@@ -116,17 +119,24 @@ export default function Terminal() {
   const [chartLoading, setChartLoading] = useState(false);
   /** A token to open once markets load, from a ?token= link (Telegram alerts use these). */
   const [linkedToken, setLinkedToken] = useState<string | null>(null);
+  /** The Solana token open on the token page. */
+  const [solMint, setSolMint] = useState<string | null>(null);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const v = params.get("view");
     if (isView(v)) setView(v);
     // Newcomers start in Simple mode; anyone who picked Pro keeps the terminal.
-    else if (ON_SOLANA || (!params.get("token") && !params.get("wallet") && localStorage.getItem(MODE_KEY) !== "pro")) setView("home");
+    else if (!params.get("token") && !params.get("wallet") && localStorage.getItem(MODE_KEY) !== "pro") setView("home");
     const w = params.get("wallet");
     if (w && isAddress(w)) setWallet(w);
     const t = params.get("token");
-    if (t && isAddress(t)) setLinkedToken(t);
+    if (t && isAddress(t)) {
+      if (isSolanaAddress(t)) {
+        setSolMint(t);
+        setView("token");
+      } else setLinkedToken(t);
+    }
   }, []);
 
   const switchView = useCallback((next: View, walletParam?: string) => {
@@ -156,8 +166,13 @@ export default function Terminal() {
   /** Open a token from a live view in the terminal. Unlisted Pons launches are looked up on chain first. */
   const openToken = useCallback(
     async (address: string, fallbackUrl?: string) => {
-      if (ON_SOLANA) {
-        window.open(tokenChartUrl(address), "_blank", "noopener,noreferrer");
+      if (isSolanaAddress(address)) {
+        setSolMint(address);
+        setView("token");
+        const url = new URL(window.location.href);
+        url.searchParams.delete("view");
+        url.searchParams.set("token", address);
+        window.history.pushState(null, "", url);
         return;
       }
       const listed = allTokens.find((t) => t.token.address.toLowerCase() === address.toLowerCase());
@@ -247,6 +262,7 @@ export default function Terminal() {
   return (
     <WalletProvider chain={market?.chain}>
     <SatProvider>
+    <SolanaWalletProvider>
     <div className="app">
       <header className="topbar">
         <Link href="/" className="brand">
@@ -254,7 +270,7 @@ export default function Terminal() {
           <span className="brand-name">SAT</span>
         </Link>
         <MascotStatus />
-        {!ON_SOLANA && (
+        {(
         <div className="mode-switch" role="group" aria-label="Simple or Pro mode">
           <button className={view === "home" ? "active" : ""} onClick={() => switchView("home")}>
             Simple
@@ -286,14 +302,14 @@ export default function Terminal() {
           <span>Search</span>
           <kbd>⌘K</kbd>
         </button>
-        {!ON_SOLANA && <SatPill onOpen={() => switchView("sat")} />}
+        <SatPill onOpen={() => switchView("sat")} />
         <AlertsCenter
           onOpenToken={(token, url) => void openToken(token, url)}
           onOpenWallet={openWallet}
           onOpenSat={() => switchView("sat")}
           agentEnabled={market?.agentEnabled ?? false}
         />
-        {!ON_SOLANA && <ConnectButton onPortfolio={() => switchView("portfolio")} />}
+        <ConnectButton onPortfolio={() => switchView("portfolio")} />
       </header>
 
       <PaletteHost
@@ -337,6 +353,7 @@ export default function Terminal() {
         <HomeView onOpenToken={(token) => void openToken(token)} onExplore={() => switchView("explore")} onRadar={() => switchView("radar")} onAgent={() => switchView("agent")} />
       )}
       {view === "explore" && <ExploreView onOpenToken={(token, url) => void openToken(token, url)} />}
+      {view === "token" && solMint && <SolTokenView mint={solMint} onBack={() => switchView("explore")} />}
       {view === "agent" && <AgentView agentEnabled={market?.agentEnabled ?? false} onOpenToken={(token) => void openToken(token)} />}
       {view === "portfolio" && <PortfolioView explorer={explorer} onOpenToken={(token) => void openToken(token)} />}
       {view === "sat" && <SatView explorer={explorer} feeWallet={market?.execution.feeRecipient ?? null} />}
@@ -545,6 +562,7 @@ export default function Terminal() {
         </section>
       </div>
     </div>
+    </SolanaWalletProvider>
     </SatProvider>
     </WalletProvider>
   );

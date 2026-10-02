@@ -40,34 +40,29 @@ export default function HomeView({ onOpenToken, onExplore, onRadar, onAgent }: {
             See every launch in Explore →
           </button>
         </div>
-        {ON_SOLANA ? (
-          <LiveLaunches onOpen={onOpenToken} />
-        ) : (
-          <div>
-            <LiveWhales onOpen={onOpenToken} />
-            <button className="more" onClick={onRadar} style={{ background: "none" }}>
-              Open the Whale Radar →
-            </button>
-          </div>
-        )}
+        <div>
+          <LiveWhales onOpen={onOpenToken} />
+          <button className="more" onClick={onRadar} style={{ background: "none" }}>
+            Open the Whale Radar →
+          </button>
+        </div>
         <div style={{ gridColumn: "1 / -1" }}>
           <LiveSocial onOpen={onOpenToken} />
         </div>
-        {!ON_SOLANA && <LiveLaunches onOpen={onOpenToken} />}
+        <LiveLaunches onOpen={onOpenToken} />
         <LiveScan onOpen={onOpenToken} />
-        {ON_SOLANA ? (
-          <div className="sx-card">
-            <h3>
-              <Satellite mood="scanning" size={34} orbit={false} /> Your agent
-            </h3>
-            <p className="dim" style={{ margin: "0 0 14px" }}>
-              Pick a style or describe your own. SAT hunts Solana around the clock and tells you what to buy, at what market cap, and exactly when to sell.
-            </p>
-            <button className="sx-btn primary" style={{ marginTop: 6 }} onClick={onAgent}>
-              Open your agent →
-            </button>
-          </div>
-        ) : (
+        <div className="sx-card">
+          <h3>
+            <Satellite mood="scanning" size={34} orbit={false} /> Your agent
+          </h3>
+          <p className="dim" style={{ margin: "0 0 14px" }}>
+            Pick a style or describe your own. SAT hunts around the clock and tells you what to buy, at what market cap, and exactly when to sell.
+          </p>
+          <button className="sx-btn primary" style={{ marginTop: 6 }} onClick={onAgent}>
+            Open your agent →
+          </button>
+        </div>
+        {(
           <div className="sx-card">
             <h3>
               <Satellite mood="pump" size={34} orbit={false} /> $SAT
@@ -85,7 +80,7 @@ export default function HomeView({ onOpenToken, onExplore, onRadar, onAgent }: {
             </button>
           </div>
         )}
-        {!ON_SOLANA && <LiveMarkets limit={4} onOpen={onOpenToken} />}
+        <LiveMarkets limit={4} onOpen={onOpenToken} />
       </div>
     </div>
   );
