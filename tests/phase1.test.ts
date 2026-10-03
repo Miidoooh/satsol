@@ -11,8 +11,8 @@ describe("pons profiles", () => {
     expect(logoUrlOf("")).toBeNull();
   });
   it("classifies social links by where they point, not by slot", () => {
-    expect(classifySocials(["https://x.com/sat_rhood/all", "", "", "https://www.sathood.xyz/", ""])).toEqual({
-      twitter: "https://x.com/sat_rhood/all",
+    expect(classifySocials(["https://x.com/SATforSOL/all", "", "", "https://www.sathood.xyz/", ""])).toEqual({
+      twitter: "https://x.com/SATforSOL/all",
       website: "https://www.sathood.xyz/",
     });
     expect(classifySocials(["t.me/fuelpays", "https://discord.gg/abc", "javascript:alert(1)"])).toEqual({

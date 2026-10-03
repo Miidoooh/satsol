@@ -22,7 +22,7 @@ export default function Landing() {
           {SHOW_SAT_TOKEN && <Link href="#sat">$SAT</Link>}
         </nav>
         <div className="spacer" />
-        <a className="btn sm icon-only" href="https://x.com/sat_rhood" target="_blank" rel="noreferrer noopener" aria-label="SAT on X" title="@sat_rhood on X">
+        <a className="btn sm icon-only" href="https://x.com/SATforSOL" target="_blank" rel="noreferrer noopener" aria-label="SAT on X" title="@SATforSOL on X">
           <svg className="x-logo" viewBox="0 0 24 24" aria-hidden="true">
             <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
           </svg>
@@ -88,8 +88,8 @@ export default function Landing() {
             <div className="spacer" style={{ flex: 1 }} />
             <Link href="/app">App</Link>
             <Link href="/app?view=agent">Agent</Link>
-            <a href="https://x.com/sat_rhood" target="_blank" rel="noreferrer noopener">
-              X @sat_rhood
+            <a href="https://x.com/SATforSOL" target="_blank" rel="noreferrer noopener">
+              X @SATforSOL
             </a>
           </div>
           <p>

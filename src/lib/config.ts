@@ -42,7 +42,7 @@ const EnvSchema = z.object({
   BOT_ADMIN_CHAT_ID: z.preprocess(emptyToUndef, z.string().optional()),
   BOT_MAX_CALLS_PER_DAY: z.coerce.number().int().min(0).max(50).default(8),
   BOT_MIN_GAP_MIN: z.coerce.number().int().min(5).max(24 * 60).default(45),
-  /** X developer app (OAuth 2.0). The bot and @sat_rhood both authorize this app once. */
+  /** X developer app (OAuth 2.0). The bot and @SATforSOL both authorize this app once. */
   X_CLIENT_ID: z.preprocess(emptyToUndef, z.string().optional()),
   X_CLIENT_SECRET: z.preprocess(emptyToUndef, z.string().optional()),
   SAT_SITE_URL: z.string().url().default("https://sathood.xyz"),
