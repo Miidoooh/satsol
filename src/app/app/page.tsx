@@ -6,6 +6,8 @@ import AgentChat from "@/components/AgentChat";
 import AgentView from "@/components/agent/AgentView";
 import { SolanaWalletProvider } from "@/components/solana/SolanaWallet";
 import SolTokenView from "@/components/solana/SolTokenView";
+import SignalCenter from "@/components/signals/SignalCenter";
+import XMonitor from "@/components/signals/XMonitor";
 import { SolPortfolio, SolTerminal, SolTrenches, SolWhaleRadar } from "@/components/solana/SolViews";
 import AlertsCenter from "@/components/AlertsCenter";
 import ChartPanel from "@/components/ChartPanel";
@@ -19,7 +21,7 @@ import PortfolioView from "@/components/PortfolioView";
 import HomeView from "@/components/brand/HomeView";
 import MascotStatus from "@/components/brand/MascotStatus";
 import CommandPalette from "@/components/CommandPalette";
-import { IconAgent, IconBolt, IconBrain, IconDiamond, IconExplore, IconFlame, IconHome, IconPie, IconRadar, IconReport, IconSearch, IconTerminal, IconWallet } from "@/components/icons";
+import { IconAgent, IconX, IconBolt, IconBrain, IconDiamond, IconExplore, IconFlame, IconHome, IconPie, IconRadar, IconReport, IconSearch, IconTerminal, IconWallet } from "@/components/icons";
 import { SatPill, SatProvider, useSat } from "@/components/sat";
 import SatView from "@/components/SatView";
 import { SocialLinks, TokenAvatar } from "@/components/TokenAvatar";
@@ -39,6 +41,7 @@ import "../v2.css";
 import "../v3.css";
 import "../agent.css";
 import "../sol.css";
+import "../signals.css";
 
 interface MarketResponse {
   source: string;
@@ -61,12 +64,13 @@ const ALL_TF: Timeframe[] = ["5m", "15m", "1h", "4h", "1d"];
 const PONS_TF: Timeframe[] = ["5m", "15m", "1h", "4h"];
 const isAddress = isTokenAddress;
 
-type View = "home" | "terminal" | "explore" | "agent" | "radar" | "trenches" | "wallets" | "portfolio" | "sat" | "token";
+type View = "home" | "terminal" | "explore" | "agent" | "xmonitor" | "radar" | "trenches" | "wallets" | "portfolio" | "sat" | "token";
 const VIEWS: { id: View; label: string; short: string; icon: React.ReactNode; hint: string; isNew?: boolean; mobile?: boolean }[] = [
   { id: "home", label: "Home", short: "Home", icon: <IconHome />, hint: "What matters right now, in plain words", mobile: true },
   { id: "terminal", label: "Terminal", short: "Trade", icon: <IconTerminal />, hint: "Charts, analysis, trade and the agent", mobile: true },
   { id: "explore", label: "Explore", short: "Explore", icon: <IconExplore />, hint: "Every live Pons launch, GMGN style", mobile: true },
-  { id: "agent", label: "Your Agent", short: "Agent", icon: <IconAgent />, hint: "Picks for your style, with exact buy and sell levels", isNew: true, mobile: true },
+  { id: "agent", label: "Your Agent", short: "Agent", icon: <IconAgent />, hint: "Picks for your style, with exact buy and sell levels", mobile: true },
+  { id: "xmonitor", label: "X Monitor", short: "X", icon: <IconX />, hint: "Live posts from the X accounts you watch, with the tokens they name", isNew: true },
   { id: "radar", label: "Whale Radar", short: "Whales", icon: <IconRadar />, hint: "Big buys, sells and money flow", mobile: true },
   { id: "trenches", label: "Pons Trenches", short: "Trenches", icon: <IconFlame />, hint: "New, hot and graduating curves" },
   { id: "wallets", label: "Smart Money", short: "Wallets", icon: <IconBrain />, hint: "Top traders and what they buy" },
@@ -321,6 +325,7 @@ export default function Terminal() {
         <ConnectButton onPortfolio={() => switchView("portfolio")} />
       </header>
 
+      {ON_SOLANA && <SignalCenter onOpenToken={(t) => void openToken(t)} />}
       <PaletteHost
         tokens={allTokens}
         officialToken={market?.satToken}
@@ -367,6 +372,7 @@ export default function Terminal() {
       )}
       {view === "explore" && <ExploreView onOpenToken={(token, url) => void openToken(token, url)} />}
       {view === "token" && solMint && <SolTokenView mint={solMint} onBack={() => switchView("explore")} />}
+      {view === "xmonitor" && <XMonitor onOpenToken={(t) => void openToken(t)} />}
       {view === "agent" && <AgentView agentEnabled={market?.agentEnabled ?? false} onOpenToken={(token) => void openToken(token)} />}
       {!ON_SOLANA && view === "portfolio" && <PortfolioView explorer={explorer} onOpenToken={(token) => void openToken(token)} />}
       {SHOW_SAT_TOKEN && view === "sat" && <SatView explorer={explorer} feeWallet={market?.execution.feeRecipient ?? null} />}

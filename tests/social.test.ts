@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { buzzLine, socialAlerts } from "@/lib/social/posts";
-import { buzzOf, tokensIn, toPost } from "@/lib/social/radar";
+import { xSignal } from "@/components/signals/SignalCenter";
+import { buzzOf, isReply, tokensIn, toPost } from "@/lib/social/radar";
 
 const A = "0x00000000000000000000000000000000000000a1" as const;
 const B = "0x00000000000000000000000000000000000000b2" as const;
@@ -19,6 +20,20 @@ const tweet = (id: string, text: string, followers: number, user = "kol", create
   text,
   createdAt,
   author: { userName: user, name: user, followers },
+});
+
+describe("X Monitor", () => {
+  it("treats replies as noise and original posts as signal", () => {
+    expect(isReply("@lord_fed 😂😂😂")).toBe(true);
+    expect(isReply("this one is going higher", true)).toBe(true);
+    expect(isReply("$PEPE looks ready, CA below")).toBe(false);
+  });
+
+  it("turns a watched post into a pop-up with its token and live market cap", () => {
+    const p = { ...toPost(tweet("9", "aping $ANTS", 1_437_162, "blknoiz06"), [{ token: B, symbol: "ANTS" }]), watched: true };
+    p.tokens[0].mcapUsd = 250_000;
+    expect(xSignal(p)).toMatchObject({ id: "x:9", kind: "x", head: "@blknoiz06 · 1.4M followers · watched", token: B, symbol: "ANTS", mcapUsd: 250_000 });
+  });
 });
 
 describe("X radar matching", () => {

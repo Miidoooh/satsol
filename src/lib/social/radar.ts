@@ -4,7 +4,7 @@ import { ADDRESS_IN_TEXT } from "../address";
 import { GT_NETWORK } from "../radar/chainwide";
 import { exploreUniverse } from "../radar/explore";
 import { getKv } from "../store/kv";
-import type { SocialSnapshot, TokenBuzz, XPost } from "./posts";
+import { DEFAULT_WATCH, HANDLE, type SocialSnapshot, type TokenBuzz, type XPost } from "./posts";
 import { callsToday, searchLatest, type RawTweet } from "./x";
 
 export { buzzLine, socialAlerts, type SocialSnapshot, type TokenBuzz, type XPost } from "./posts";
@@ -51,6 +51,9 @@ export function looksLikeSpam(text: string): boolean {
   if (/[\u200B-\u200F\u2060-\u2064\uFEFF]/.test(text)) return true;
   return /[A-Za-z][\u0400-\u04FF]|[\u0400-\u04FF][A-Za-z]/.test(text);
 }
+
+/** A reply to someone: flagged by X, or text that opens with an @mention. */
+export const isReply = (text: string, flagged?: boolean) => flagged === true || /^@\w+/.test(text.trim());
 
 /** Which known tokens a tweet is about: by contract address, or by cashtag when the ticker is ours. */
 export function tokensIn(text: string, byAddress: Known, bySymbol: Known): XPost["tokens"] {
@@ -127,7 +130,13 @@ async function scan(provider: RobinhoodChainProvider, prev: State): Promise<Stat
 
   const since = Math.max(prev.scannedAt, Math.floor(Date.now() / 1000) - 6 * 3600) - 30;
   const watch = [...(sat ? [sat.token] : []), ...ranked.filter((r) => r.vol30mUsd > 0).slice(0, WATCH_TOKENS).map((r) => r.token)];
+  const handles = await watchedHandles();
+  const watchedSet = new Set(handles.map((h) => h.toLowerCase()));
   const queries = [`(${watch.map((a) => `"${a}"`).join(" OR ")}) since_time:${since}`, `${ECOSYSTEM[GT_NETWORK()]} since_time:${since} -filter:retweets`];
+  // Watched accounts, about 20 per search, so a whole watchlist costs a handful of calls.
+  for (let i = 0; i < handles.length; i += HANDLES_PER_QUERY) {
+    queries.push(`(${handles.slice(i, i + HANDLES_PER_QUERY).map((h) => `from:${h}`).join(" OR ")}) since_time:${since} -filter:retweets -filter:replies`);
+  }
 
   const seen = new Set(prev.posts.map((p) => p.id));
   const fresh: XPost[] = [];
@@ -141,8 +150,10 @@ async function scan(provider: RobinhoodChainProvider, prev: State): Promise<Stat
       seen.add(t.id);
       if (looksLikeSpam(t.text ?? "")) continue;
       const tokens = tokensIn(t.text ?? "", byAddress, bySymbol);
-      if (!tokens.length && (t.author?.followers ?? 0) < cfg.SOCIAL_ALERT_FOLLOWERS) continue;
-      fresh.push(toPost(t, tokens));
+      // Watched accounts count for their own posts, not their replies to other people.
+      const watched = watchedSet.has((t.author?.userName ?? "").toLowerCase()) && !isReply(t.text ?? "", t.isReply);
+      if (!tokens.length && !watched && (t.author?.followers ?? 0) < cfg.SOCIAL_ALERT_FOLLOWERS) continue;
+      fresh.push({ ...toPost(t, tokens), ...(watched ? { watched: true } : {}) });
     }
   }
   const now = Math.floor(Date.now() / 1000);
@@ -151,6 +162,37 @@ async function scan(provider: RobinhoodChainProvider, prev: State): Promise<Stat
     .sort((a, b) => b.at - a.at)
     .slice(0, MAX_POSTS);
   return { posts, scannedAt: ran ? now : prev.scannedAt };
+}
+
+const WATCH_KEY = () => `social:watch:v1:${getConfig().SAT_CHAIN}`;
+const HANDLES_PER_QUERY = 20;
+const MAX_WATCHED = 200;
+
+/** Every handle the X Monitor watches: the starter list plus what users added. */
+export async function watchedHandles(): Promise<string[]> {
+  const added = await getKv().smembers(WATCH_KEY()).catch(() => [] as string[]);
+  const seen = new Set<string>();
+  return [...DEFAULT_WATCH, ...added].filter((h) => {
+    const k = h.toLowerCase();
+    if (!HANDLE.test(h) || seen.has(k)) return false;
+    seen.add(k);
+    return true;
+  });
+}
+
+/** Add handles to the shared watchlist; returns the full list. */
+export async function addWatched(handles: string[]): Promise<string[]> {
+  const current = await watchedHandles();
+  const have = new Set(current.map((h) => h.toLowerCase()));
+  let room = MAX_WATCHED - current.length;
+  for (const h of handles) {
+    if (room <= 0) break;
+    if (!HANDLE.test(h) || have.has(h.toLowerCase())) continue;
+    await getKv().sadd(WATCH_KEY(), h);
+    have.add(h.toLowerCase());
+    room--;
+  }
+  return watchedHandles();
 }
 
 let running: Promise<State> | null = null;
@@ -179,7 +221,7 @@ export async function getSocial(provider: RobinhoodChainProvider, refresh = true
     // Serve the last scan while the next one runs; only the very first scan is awaited.
     if (state.scannedAt === 0) state = await running;
   }
-  const posts = state.posts.filter((p) => !looksLikeSpam(p.text));
+  const posts = state.posts.filter((p) => !looksLikeSpam(p.text) && !(p.watched && isReply(p.text)));
   return {
     enabled: Boolean(cfg.TWITTERAPI_IO_KEY),
     posts,

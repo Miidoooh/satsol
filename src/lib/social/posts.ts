@@ -11,8 +11,16 @@ export interface XPost {
   retweets: number;
   views: number;
   author: { userName: string; name: string; followers: number; verified: boolean; avatar?: string };
-  tokens: { token: string; symbol: string }[];
+  tokens: { token: string; symbol: string; mcapUsd?: number | null }[];
+  /** Posted by an account on the X Monitor watchlist. */
+  watched?: boolean;
 }
+
+/** X handles: 1 to 15 letters, digits or underscores. */
+export const HANDLE = /^[A-Za-z0-9_]{1,15}$/;
+
+/** Well-known Solana traders and builders every X Monitor starts with. Users add their own on top. */
+export const DEFAULT_WATCH = ["blknoiz06", "MustStopMurad", "aeyakovenko", "rajgokal", "notthreadguy", "frankdegods", "Cupseyy", "orangie", "pumpdotfun", "JupiterExchange"];
 
 export interface TokenBuzz {
   token: string;
