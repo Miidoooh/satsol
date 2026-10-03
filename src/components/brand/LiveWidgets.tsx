@@ -5,6 +5,7 @@ import type { SolRadar } from "@/app/api/sol/radar/route";
 import { ON_SOLANA } from "@/lib/chainMode";
 import { fmtAgo, fmtPct, fmtPrice, fmtUsd } from "@/lib/format";
 import type { PonsTokenDetail } from "@/lib/data/ponsToken";
+import type { SolSafety } from "@/lib/solana/safety";
 import type { ExplorePage } from "@/lib/radar/explore";
 import type { RadarSnapshot } from "@/lib/radar/whales";
 import { compactCount, type SocialSnapshot } from "@/lib/social/posts";
@@ -325,19 +326,30 @@ export function LiveMarkets({ limit = 5, onOpen }: { limit?: number; onOpen?: Op
   );
 }
 
+/** What the safety card shows, from either chain's check. */
+interface ScanDetail {
+  market: { token: { symbol: string } };
+  safety: { score: number; label: string; flags: { tone: string; text: string }[] };
+}
+
 /** Launches closest to graduating, plus a real safety read on the hottest one. */
 export function LiveScan({ onOpen }: { onOpen?: Open }) {
   const { data: almost } = usePoll<ExplorePage>("/api/explore?tab=almost&limit=4", 15_000);
   const { data: hot } = usePoll<ExplorePage>("/api/explore?tab=trending&limit=1", 30_000);
   const target = hot?.rows[0]?.token;
-  const [detail, setDetail] = useState<PonsTokenDetail | null>(null);
+  const [detail, setDetail] = useState<ScanDetail | null>(null);
   useEffect(() => {
-    // The deep safety read is Robinhood-only for now.
+    if (!target) return;
     let alive = true;
-    fetch(`/api/pons/token?address=${target}`)
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => alive && d && !("error" in d) && setDetail(d))
-      .catch(() => undefined);
+    const hotRow = hot?.rows[0];
+    const read: Promise<ScanDetail | null> = ON_SOLANA
+      ? fetch(`/api/sol/safety?mint=${target}${hotRow?.raisedUsd ? `&liq=${Math.round(hotRow.raisedUsd)}` : ""}${hotRow?.launchedAt ? `&launched=${hotRow.launchedAt}` : ""}`)
+          .then((r) => (r.ok ? r.json() : null))
+          .then((s: SolSafety | null) => (s && !("error" in s) ? { market: { token: { symbol: hotRow?.symbol ?? "" } }, safety: s } : null))
+      : fetch(`/api/pons/token?address=${target}`)
+          .then((r) => (r.ok ? r.json() : null))
+          .then((d: PonsTokenDetail | null) => (d && !("error" in d) ? d : null));
+    read.then((d) => alive && d && setDetail(d)).catch(() => undefined);
     return () => {
       alive = false;
     };

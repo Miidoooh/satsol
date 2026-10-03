@@ -39,8 +39,10 @@ async function load(mint: string): Promise<SolTokenInfo> {
     included?: { id: string; type: string; attributes: Record<string, unknown>; relationships?: { dex?: { data?: { id: string } } } }[];
   };
   const a = body.data.attributes;
-  const topId = body.data.relationships?.top_pools?.data?.[0]?.id;
-  const top = body.included?.find((i) => i.id === topId && i.type === "pool");
+  // GeckoTerminal's first "top pool" can be a dead one; the busiest pool by 24h volume is the real market.
+  const pools = (body.included ?? []).filter((i) => i.type === "pool");
+  const vol24 = (p: (typeof pools)[number]) => num((p.attributes.volume_usd as W<string> | undefined)?.h24) ?? 0;
+  const top = [...pools].sort((x, y) => vol24(y) - vol24(x))[0];
   const pa = top?.attributes as
     | { address: string; name: string; pool_created_at?: string; price_change_percentage?: W<string>; volume_usd?: W<string>; transactions?: SolTokenInfo["pool"] extends infer P ? (P extends { txns: infer T } ? T : never) : never }
     | undefined;
@@ -53,7 +55,7 @@ async function load(mint: string): Promise<SolTokenInfo> {
     logoUrl: typeof a.image_url === "string" && !a.image_url.includes("missing") ? a.image_url : null,
     priceUsd: num(a.price_usd as string),
     mcapUsd: num(a.market_cap_usd as string) ?? num(a.fdv_usd as string),
-    liquidityUsd: num(a.total_reserve_in_usd as string),
+    liquidityUsd: Math.max(num(a.total_reserve_in_usd as string) ?? 0, num(top?.attributes.reserve_in_usd as string) ?? 0) || null,
     vol24hUsd: num(a.volume_usd?.h24),
     pool: pa
       ? {

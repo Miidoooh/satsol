@@ -1,4 +1,5 @@
-import { isEvmAddress } from "../address";
+import { isEvmAddress, isSolanaAddress } from "../address";
+import { solSafety } from "../solana/safety";
 import { cache } from "../cache";
 import { ponsTokenDetail } from "../data/ponsToken";
 import { getPonsProfiles } from "../data/ponsProfile";
@@ -79,9 +80,20 @@ export async function picksFor(provider: RobinhoodChainProvider, s: Strategy, li
     evmOnly(top.filter((p) => !p.external).map((p) => p.token)),
   ).catch(() => new Map<string, { score: number; label: string }>());
   const byToken = new Map(candidates.map((c) => [c.token.toLowerCase(), c]));
+  // Solana mints get the full on-chain rug check, a few at a time.
+  const solTop = top.filter((p) => isSolanaAddress(p.token));
+  for (let i = 0; i < solTop.length; i += 4) {
+    await Promise.all(
+      solTop.slice(i, i + 4).map(async (p) => {
+        const c = byToken.get(p.token.toLowerCase());
+        const r = await solSafety(p.token, { liquidityUsd: c?.raisedUsd ?? null, launchedAt: c?.launchedAt ?? null }).catch(() => null);
+        if (r) safety.set(p.token.toLowerCase(), { score: r.score, label: r.label });
+      }),
+    );
+  }
   for (const p of top) {
     const c = byToken.get(p.token.toLowerCase());
-    if (p.external && c) safety.set(p.token.toLowerCase(), poolSafety(c.raisedUsd ?? 0, c.mcapUsd ?? 0));
+    if (p.external && c && !safety.has(p.token.toLowerCase())) safety.set(p.token.toLowerCase(), poolSafety(c.raisedUsd ?? 0, c.mcapUsd ?? 0));
   }
   const picks = flagCopycats(matchPicks(s, candidates, now, { limit, safety: strictSafety || safety.size ? safety : undefined }), rows);
   const social = await getSocial(provider, false).catch(() => null);

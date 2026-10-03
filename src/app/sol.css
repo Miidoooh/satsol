@@ -186,6 +186,100 @@
   text-align: center;
 }
 
+/* Rug check */
+.sol-side {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.sol-safety {
+  padding: 16px;
+  border-radius: 20px;
+  border: 1px solid var(--hairline-strong);
+  background: linear-gradient(180deg, rgba(17, 26, 48, 0.95), rgba(12, 17, 33, 0.95));
+}
+.sol-safety-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 10px;
+}
+.sol-ring {
+  flex: none;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-family: var(--font-display), sans-serif;
+  font-size: 20px;
+  font-weight: 800;
+  color: #c8d0ee;
+  background:
+    radial-gradient(closest-side, var(--panel) 78%, transparent 80% 100%),
+    conic-gradient(var(--indigo) calc(var(--s) * 1%), var(--panel-3) 0);
+}
+.sol-ring.good {
+  color: var(--accent);
+  background:
+    radial-gradient(closest-side, var(--panel) 78%, transparent 80% 100%),
+    conic-gradient(var(--accent) calc(var(--s) * 1%), var(--panel-3) 0);
+}
+.sol-ring.warn {
+  color: #ffb020;
+  background:
+    radial-gradient(closest-side, var(--panel) 78%, transparent 80% 100%),
+    conic-gradient(#ffb020 calc(var(--s) * 1%), var(--panel-3) 0);
+}
+.sol-ring.bad {
+  color: #ff6b6b;
+  background:
+    radial-gradient(closest-side, var(--panel) 78%, transparent 80% 100%),
+    conic-gradient(#ff6b6b calc(var(--s) * 1%), var(--panel-3) 0);
+}
+.sol-safety-label {
+  font-family: var(--font-display), sans-serif;
+  font-size: 17px;
+}
+.sol-safety-label.good {
+  color: var(--accent);
+}
+.sol-safety-label.warn {
+  color: #ffb020;
+}
+.sol-safety-label.bad {
+  color: #ff6b6b;
+}
+.sol-flags {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 13px;
+}
+.sol-flags li {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+}
+.sol-flags li span {
+  flex: none;
+  width: 16px;
+  font-weight: 800;
+  text-align: center;
+}
+.sol-flags .good span {
+  color: var(--accent);
+}
+.sol-flags .warn {
+  color: #ffd27a;
+}
+.sol-flags .bad {
+  color: #ff8b8b;
+}
+
 /* Pro terminal on Solana */
 .sol-terminal {
   display: grid;

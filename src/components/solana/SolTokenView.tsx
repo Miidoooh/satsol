@@ -7,6 +7,7 @@ import type { SolTokenInfo } from "@/app/api/sol/token/route";
 import { TokenAvatar } from "../TokenAvatar";
 import { usePoll } from "../usePoll";
 import ChartPanel from "../ChartPanel";
+import SolSafetyPanel from "./SolSafetyPanel";
 import SolTradePanel from "./SolTradePanel";
 
 const TIMEFRAMES = ["1m", "5m", "15m", "1h", "4h", "1d"] as const;
@@ -101,13 +102,16 @@ export default function SolTokenView({ mint, onBack }: { mint: string; onBack: (
           <div className="sol-chart">
             {candles?.candles.length ? (
               <ChartPanel candles={candles.candles} analysis={null} />
+            ) : candles ? (
+              <div className="dim live-empty">No trades on this pool in this timeframe yet. Try a longer one.</div>
             ) : (
               <div className="dim live-empty is-loading">{p ? "Loading the chart…" : "Finding this token's pool…"}</div>
             )}
           </div>
         </div>
-        <aside>
+        <aside className="sol-side">
           <SolTradePanel mint={mint} symbol={data?.symbol || "token"} />
+          <SolSafetyPanel mint={mint} liquidityUsd={data?.liquidityUsd ?? null} launchedAt={p?.createdAt ?? null} />
         </aside>
       </div>
     </div>
