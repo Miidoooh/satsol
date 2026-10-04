@@ -279,6 +279,26 @@
 .sol-flags .bad {
   color: #ff8b8b;
 }
+.sol-bundle-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin: 4px 0 12px;
+}
+.sol-bundle-stats div {
+  padding: 8px 4px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  text-align: center;
+}
+.sol-bundle-stats b {
+  display: block;
+  font-size: 15px;
+}
+.sol-bundle-stats span {
+  font-size: 11px;
+  color: var(--muted, #8b93a7);
+}
 
 /* Pro terminal on Solana */
 .sol-terminal {

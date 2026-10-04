@@ -80,6 +80,13 @@ export const IconBolt = () => (
     <path d="M13 3L5 14h6l-1 7 8-11h-6z" />
   </svg>
 );
+export const IconTrophy = () => (
+  <svg {...base} aria-hidden>
+    <path d="M8 4h8v5a4 4 0 0 1-8 0z" />
+    <path d="M8 6H5a3 3 0 0 0 3 3M16 6h3a3 3 0 0 1-3 3" />
+    <path d="M12 13v3M9 20h6M10 16h4v4h-4z" />
+  </svg>
+);
 export const IconX = () => (
   <svg {...base} aria-hidden>
     <path d="M4 4l16 16M20 4L4 20" />

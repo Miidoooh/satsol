@@ -7,6 +7,7 @@ import type { SolTokenInfo } from "@/app/api/sol/token/route";
 import { TokenAvatar } from "../TokenAvatar";
 import { usePoll } from "../usePoll";
 import ChartPanel from "../ChartPanel";
+import BundlePanel from "./BundlePanel";
 import SolSafetyPanel from "./SolSafetyPanel";
 import SolTradePanel from "./SolTradePanel";
 
@@ -112,6 +113,7 @@ export default function SolTokenView({ mint, onBack }: { mint: string; onBack: (
         <aside className="sol-side">
           <SolTradePanel mint={mint} symbol={data?.symbol || "token"} />
           <SolSafetyPanel mint={mint} liquidityUsd={data?.liquidityUsd ?? null} launchedAt={p?.createdAt ?? null} />
+          <BundlePanel mint={mint} />
         </aside>
       </div>
     </div>

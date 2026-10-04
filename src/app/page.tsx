@@ -17,6 +17,7 @@ export default function Landing() {
         </Link>
         <nav>
           <Link href="/app?view=explore">Explore</Link>
+          <Link href="/app?view=callers">Callers</Link>
           <Link href="/app?view=radar">Whales</Link>
           <Link href="/app?view=agent">Your Agent</Link>
           {SHOW_SAT_TOKEN && <Link href="#sat">$SAT</Link>}
